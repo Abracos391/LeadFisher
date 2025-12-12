@@ -68,13 +68,9 @@ const marketingPlanSchema: Schema = {
   required: ["segment", "competitorAnalysis", "audienceStrategy", "leadMagnet", "creativePrompts", "adCopy", "agentFlow"]
 };
 
-// Now accepts apiKey explicitly
-export const generateMarketingPlan = async (segment: string, language: string, region: string, radius: string, apiKey: string): Promise<MarketingPlan> => {
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please provide a valid Gemini API Key.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey: apiKey });
+// API Key is now obtained directly from process.env.API_KEY
+export const generateMarketingPlan = async (segment: string, language: string, region: string, radius: string): Promise<MarketingPlan> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   try {
     const response = await ai.models.generateContent({
