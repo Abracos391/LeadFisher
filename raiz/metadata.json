@@ -1,5 +1,7 @@
 {
   "name": "LeadFisher MVP",
   "description": "An AI-powered stealth marketing strategist that generates complete 'Lead Fisher' campaigns: competitor analysis, audience targeting, silent ad copy, and automation scripts based on your specific niche.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "geolocation"
+  ]
 }
