@@ -1,9 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { MarketingPlan } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
-
 const marketingPlanSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -71,7 +68,10 @@ const marketingPlanSchema: Schema = {
   required: ["segment", "competitorAnalysis", "audienceStrategy", "leadMagnet", "creativePrompts", "adCopy", "agentFlow"]
 };
 
-export const generateMarketingPlan = async (segment: string, language: string, region: string): Promise<MarketingPlan> => {
+export const generateMarketingPlan = async (segment: string, language: string, region: string, radius: string): Promise<MarketingPlan> => {
+  // Initialize AI here to ensure we pick up the latest env var (essential for some deployment environments)
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -80,25 +80,24 @@ export const generateMarketingPlan = async (segment: string, language: string, r
       
       TASK: Create a "Lead Fisher" strategy (capture Emails/WhatsApp) for the niche: "${segment}".
       
-      CRITICAL COMPLIANCE PROTOCOLS (MUST FOLLOW):
-      1. IDIOMA (LANGUAGE): Output strictly in ${language}.
-      2. SEGMENTATION: 
-         - Focus on region: ${region}.
-         - Use INTERESTS and BEHAVIORS relevant to this region.
-         - DO NOT target based on sensitive personal attributes (health, race, specific financial status, religion, sexual orientation).
-      3. SAFETY & CONTENT POLICIES (Meta/Google/TikTok):
-         - NO EXAGGERATED PROMISES: Avoid "100% guaranteed", "Cura milagrosa", "Lucro fácil/rápido", "Fique rico". Use neutral, verifiable language.
-         - NO DIRECT ADVICE: Avoid medical, legal, or financial advice. Use educational tone.
-         - NO TRADEMARKS: Do not use copyrighted brand names (e.g., instead of "Netflix", use "Streaming Apps").
-         - NO SENSITIVE THEMES: Avoid politics, violence, adult content, or discrimination.
+      CRITICAL CONFIGURATION:
+      1. LANGUAGE: All content MUST be in "${language}". This is mandatory.
+      2. LOCATION: Target "${region}".
+      3. RADIUS/SCOPE: Strategy must be optimized for a scope of "${radius}". 
+         (If radius is small/local, focus on local intent, "near me" keywords, and hyper-local creative details).
+      
+      SAFETY & CONTENT POLICIES (Meta/Google/TikTok):
+      - NO EXAGGERATED PROMISES: Avoid "100% guaranteed", "Miracle cure", "Easy money". Use neutral, verifiable language.
+      - NO DIRECT ADVICE: Avoid medical, legal, or financial advice. Use educational tone.
+      - NO SENSITIVE THEMES: Avoid politics, violence, adult content, or discrimination.
       
       OUTPUT REQUIREMENTS:
       1. Competitor Analysis: Keywords to search in Ads Lib (in ${language}).
-      2. Lead Magnet: A specific, high-value "Bait" (PDF, Aula, Template) to exchange for contact info, culturally relevant to ${region}.
+      2. Lead Magnet: A specific, high-value "Bait" (PDF, Class, Template) relevant to ${region}.
       3. Creative Prompts: 
-         - Detailed prompts for AI Video/Image generation that are SAFE and VISUALLY STUNNING.
+         - Detailed prompts for AI Video/Image generation.
          - Thumbnail text that is catchy but compliant (in ${language}).
-      4. Ad Copy: Persuasive text that adheres to the safety rules above (in ${language}).
+      4. Ad Copy: Persuasive text (in ${language}).
       5. Automation: Questions to qualify the lead (in ${language}).
 
       Return ONLY valid JSON matching the schema.
