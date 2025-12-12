@@ -53,6 +53,12 @@ const App: React.FC = () => {
     setSegment('');
   };
 
+  const openAdsLib = (query: string) => {
+    // Generates a direct search URL for Meta Ads Library
+    const url = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&q=${encodeURIComponent(query)}&sort_data[direction]=desc&sort_data[mode]=relevancy_monthly_grouped&media_type=all`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-50 selection:bg-emerald-500/30">
       
@@ -66,7 +72,7 @@ const App: React.FC = () => {
             <span className="font-bold text-xl tracking-tight">Lead<span className="text-emerald-400">Fisher</span> <span className="text-xs font-normal text-slate-500 ml-1">Captura de Contatos</span></span>
           </div>
           <div className="text-xs font-mono text-slate-500 border border-slate-800 px-2 py-1 rounded">
-            v1.2.0
+            v1.3.0
           </div>
         </div>
       </header>
@@ -294,20 +300,50 @@ const App: React.FC = () => {
                 </div>
               </StepCard>
 
-              {/* Step 5: Competitors */}
+              {/* Step 5: Competitors - Updated with Spy Links */}
               <StepCard 
                 stepNumber={5} 
-                title="Mapeamento de Concorrentes" 
-                icon={<IconSearch className="w-5 h-5 text-slate-400" />}
-                colorClass="text-slate-400"
+                title="Espionar Concorrentes (Ads Lib)" 
+                icon={<IconSearch className="w-5 h-5 text-sky-400" />}
+                colorClass="text-sky-400"
               >
-                <p className="text-sm mb-4">Termos para pesquisar na <a href="https://www.facebook.com/ads/library" target="_blank" rel="noreferrer" className="text-slate-300 underline hover:text-white">Meta Ads Library</a>:</p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {plan.competitorAnalysis.searchKeywords.map((kw, idx) => (
-                    <span key={idx} className="px-2 py-1 bg-slate-900 rounded border border-slate-700 text-sm font-mono text-slate-300 flex items-center gap-2">
-                      {kw} <CopyButton text={kw} />
-                    </span>
-                  ))}
+                <p className="text-sm text-slate-400 mb-4">Clique para ver os anúncios ativos na Meta Ads Library:</p>
+                
+                <div className="space-y-4">
+                  {/* Competidores Diretos */}
+                  <div className="grid gap-2">
+                    {plan.competitorAnalysis.bigCompetitors.map((comp, idx) => (
+                      <button 
+                        key={idx} 
+                        onClick={() => openAdsLib(comp)} 
+                        className="flex items-center justify-between w-full p-3 bg-slate-900 border border-slate-700 hover:border-sky-500 hover:bg-slate-800 rounded-lg text-left transition-all group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span className="text-slate-200 font-medium group-hover:text-white">{comp}</span>
+                        </div>
+                        <span className="text-xs bg-sky-500/10 text-sky-400 px-2 py-1 rounded border border-sky-500/20 flex items-center gap-1 group-hover:bg-sky-500 group-hover:text-white transition-colors">
+                          Ver Ads <IconArrowRight className="w-3 h-3" />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Palavras-Chave */}
+                  <div>
+                     <h4 className="text-xs uppercase text-slate-500 font-bold mb-2 tracking-wider">Palavras-chave</h4>
+                     <div className="flex flex-wrap gap-2">
+                        {plan.competitorAnalysis.searchKeywords.map((kw, idx) => (
+                          <button 
+                            key={idx} 
+                            onClick={() => openAdsLib(kw)} 
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-full border border-slate-700 hover:border-sky-400 text-sm text-slate-300 hover:text-white transition-all flex items-center gap-2"
+                          >
+                             <IconSearch className="w-3 h-3 text-slate-500" /> {kw}
+                          </button>
+                        ))}
+                     </div>
+                  </div>
                 </div>
               </StepCard>
 
