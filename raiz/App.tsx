@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateMarketingPlan } from './services/geminiService';
 import { MarketingPlan, AppState } from './types';
-import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage } from './components/Icons';
+import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage, IconZap } from './components/Icons';
 import StepCard from './components/StepCard';
 
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
@@ -28,16 +28,23 @@ const App: React.FC = () => {
   const [region, setRegion] = useState('Brasil');
   const [radius, setRadius] = useState('Nacional (País Inteiro)');
   
+  // API Key Management
+  const [customApiKey, setCustomApiKey] = useState('');
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [plan, setPlan] = useState<MarketingPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) setCustomApiKey(savedKey);
+  }, []);
 
   const handleGeolocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // Since we don't have a reverse geocoding API key, we use the coordinates directly.
-          // Gemini is smart enough to interpret coordinates as a location context.
           const coords = `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
           setRegion(`GPS: ${coords}`);
         },
@@ -50,30 +57,55 @@ const App: React.FC = () => {
     }
   };
 
+  const getEffectiveApiKey = () => {
+    if (customApiKey.trim()) return customApiKey.trim();
+    // Use process.env.API_KEY if available (injected by Vite)
+    return process.env.API_KEY || '';
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!segment.trim()) return;
 
+    const apiKey = getEffectiveApiKey();
+
+    if (!apiKey) {
+      setShowApiKeyInput(true);
+      setError("Chave API não encontrada. Por favor, insira sua chave Gemini API abaixo.");
+      setAppState(AppState.ERROR);
+      return;
+    }
+
     setAppState(AppState.LOADING);
     setError(null);
     try {
-      const result = await generateMarketingPlan(segment, language, region, radius);
+      // Pass the specific apiKey to the service
+      const result = await generateMarketingPlan(segment, language, region, radius, apiKey);
       setPlan(result);
       setAppState(AppState.SUCCESS);
     } catch (err: any) {
       console.error(err);
-      // Improve error message based on common API issues
       let msg = "Falha ao gerar o plano.";
-      if (err.message?.includes('403') || err.message?.includes('API key')) {
-         msg = "Erro de Autenticação: Chave API inválida ou ausente. Verifique as configurações do servidor (Render).";
+      
+      // Smart error handling
+      if (err.message?.includes('403') || err.message?.includes('API key') || err.message?.includes('invalid')) {
+         msg = "Erro de Autenticação: A chave API é inválida ou expirou.";
+         setShowApiKeyInput(true); // Automatically show input on auth error
       } else if (err.message?.includes('429')) {
-         msg = "Muitas requisições. Aguarde um momento e tente novamente.";
+         msg = "Muitas requisições (Quota Excedida). Aguarde um momento.";
       } else {
-         msg = "Ocorreu um erro inesperado na IA. Tente novamente.";
+         msg = "Erro inesperado na IA. Tente novamente.";
       }
+      
       setError(msg);
       setAppState(AppState.ERROR);
     }
+  };
+
+  const handleSaveApiKey = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const key = e.target.value;
+    setCustomApiKey(key);
+    localStorage.setItem('gemini_api_key', key);
   };
 
   const handleReset = () => {
@@ -88,7 +120,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-50 selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-slate-900 text-slate-50 selection:bg-emerald-500/30 font-sans">
       
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
@@ -99,16 +131,48 @@ const App: React.FC = () => {
             </div>
             <span className="font-bold text-xl tracking-tight">Lead<span className="text-emerald-400">Fisher</span> <span className="text-xs font-normal text-slate-500 ml-1">Captura de Contatos</span></span>
           </div>
-          <div className="text-xs font-mono text-slate-500 border border-slate-800 px-2 py-1 rounded">
-            v1.4.0
+          <div className="flex items-center gap-3">
+             <button 
+               onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+               className={`text-xs px-2 py-1 rounded border ${customApiKey ? 'border-emerald-500/50 text-emerald-400' : 'border-slate-700 text-slate-500'} hover:text-white transition-colors`}
+             >
+               {customApiKey ? 'API Key Configurada' : 'Configurar API Key'}
+             </button>
+             <div className="text-xs font-mono text-slate-500 border border-slate-800 px-2 py-1 rounded">
+               v1.5.0
+             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12">
+
+        {/* API Key Input Section (Conditional) */}
+        {showApiKeyInput && (
+          <div className="max-w-2xl mx-auto mb-8 bg-slate-800 p-4 rounded-lg border border-slate-700 animate-fade-in shadow-xl">
+            <h3 className="text-white font-bold mb-2 flex items-center gap-2">
+              <IconZap className="w-4 h-4 text-yellow-400" /> Configuração da API (Gemini)
+            </h3>
+            <p className="text-slate-400 text-sm mb-3">
+              Para garantir o funcionamento, insira sua chave da Google AI Studio. Ela será salva apenas no seu navegador.
+            </p>
+            <input 
+              type="password" 
+              placeholder="Cole sua API Key aqui (começa com AIza...)"
+              value={customApiKey}
+              onChange={handleSaveApiKey}
+              className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 focus:outline-none font-mono text-sm"
+            />
+            <div className="flex justify-end mt-2">
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs text-emerald-400 hover:underline">
+                Obter chave gratuitamente &rarr;
+              </a>
+            </div>
+          </div>
+        )}
         
         {appState === AppState.IDLE && (
-          <div className="max-w-2xl mx-auto text-center mt-8 animate-fade-in">
+          <div className="max-w-2xl mx-auto text-center mt-4 animate-fade-in">
             <h1 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
               Pesque Emails e WhatsApp <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Com Iscas Digitais</span>
@@ -119,12 +183,12 @@ const App: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="relative group">
               
-              {/* Controls Row */}
-              <div className="flex flex-col md:flex-row gap-2 mb-2">
+              {/* Controls Row - ADDED z-10 here to fix clicking issue */}
+              <div className="relative z-10 flex flex-col md:flex-row gap-2 mb-2">
                  <select 
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 md:w-1/4"
+                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 md:w-1/4 cursor-pointer hover:border-slate-500"
                  >
                     <option value="Português">Português</option>
                     <option value="English">English</option>
@@ -132,19 +196,19 @@ const App: React.FC = () => {
                     <option value="Français">Français</option>
                  </select>
 
-                 <div className="flex bg-slate-800 rounded border border-slate-700 focus-within:border-emerald-500 md:w-1/2">
+                 <div className="flex bg-slate-800 rounded border border-slate-700 focus-within:border-emerald-500 md:w-1/2 overflow-hidden">
                     <input 
                       type="text"
                       value={region}
                       onChange={(e) => setRegion(e.target.value)}
-                      placeholder="Localização (Cidade, Estado)"
-                      className="bg-transparent text-white text-sm px-3 py-2 focus:outline-none w-full"
+                      placeholder="Localização (Ex: São Paulo, Brasil)"
+                      className="bg-transparent text-white text-sm px-3 py-2 focus:outline-none w-full placeholder-slate-500"
                     />
                     <button 
                       type="button" 
                       onClick={handleGeolocation}
                       title="Usar minha localização atual"
-                      className="px-3 text-slate-400 hover:text-emerald-400 border-l border-slate-700 hover:bg-slate-700/50 transition-colors"
+                      className="px-3 text-slate-400 hover:text-emerald-400 border-l border-slate-700 hover:bg-slate-700/50 transition-colors flex items-center justify-center cursor-pointer"
                     >
                       📍
                     </button>
@@ -153,7 +217,7 @@ const App: React.FC = () => {
                  <select 
                     value={radius}
                     onChange={(e) => setRadius(e.target.value)}
-                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 md:w-1/4"
+                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 md:w-1/4 cursor-pointer hover:border-slate-500"
                  >
                     <option value="Nacional (País Inteiro)">Nacional</option>
                     <option value="Estadual">Estadual</option>
@@ -165,7 +229,7 @@ const App: React.FC = () => {
 
               {/* Main Search */}
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative flex items-center bg-slate-800 rounded-lg p-2 border border-slate-700 shadow-2xl">
+              <div className="relative flex items-center bg-slate-800 rounded-lg p-2 border border-slate-700 shadow-2xl z-0">
                 <IconSearch className="w-6 h-6 text-slate-400 ml-3" />
                 <input
                   type="text"
@@ -177,7 +241,7 @@ const App: React.FC = () => {
                 <button
                   type="submit"
                   disabled={!segment.trim()}
-                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-md font-semibold transition-all flex items-center gap-2"
+                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-md font-semibold transition-all flex items-center gap-2 cursor-pointer"
                 >
                   Criar Isca <IconArrowRight className="w-4 h-4" />
                 </button>
@@ -197,20 +261,17 @@ const App: React.FC = () => {
         )}
 
         {appState === AppState.ERROR && (
-          <div className="max-w-2xl mx-auto text-center mt-24">
+          <div className="max-w-2xl mx-auto text-center mt-12">
             <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl mb-6 inline-block max-w-lg">
               <div className="flex justify-center mb-4">
                  <span className="text-3xl">⚠️</span>
               </div>
-              <p className="text-red-400 font-bold mb-2">Ops! Algo deu errado.</p>
-              <p className="text-slate-400 text-sm mb-4">{error}</p>
-              <div className="text-xs text-slate-500 border-t border-red-500/10 pt-4">
-                Dica: Se estiver usando o Render, verifique se a variável de ambiente <code>API_KEY</code> foi definida corretamente no painel.
-              </div>
+              <p className="text-red-400 font-bold mb-2">Atenção</p>
+              <p className="text-slate-300 text-sm mb-4">{error}</p>
             </div>
             <br />
             <button onClick={handleReset} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors">
-              Tentar Novamente
+              Voltar
             </button>
           </div>
         )}
