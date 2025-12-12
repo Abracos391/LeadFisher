@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
     },
+    preview: {
+      allowedHosts: true, // Permite que o Render acesse a aplicação
+    },
     define: {
       'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY),
     },
