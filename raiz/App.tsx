@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateMarketingPlan } from './services/geminiService';
 import { MarketingPlan, AppState } from './types';
-import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconZap, IconCopy, IconCheck, IconUsers, IconMagnet, IconVideo, IconImage } from './components/Icons';
+import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage } from './components/Icons';
 import StepCard from './components/StepCard';
 
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
