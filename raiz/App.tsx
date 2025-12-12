@@ -129,7 +129,7 @@ const App: React.FC = () => {
             <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
               <IconMagnet className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight">Lead<span className="text-emerald-400">Fisher</span> <span className="text-xs font-normal text-slate-500 ml-1">Captura de Contatos</span></span>
+            <span className="font-bold text-xl tracking-tight">Lead<span className="text-emerald-400">Fisher</span> <span className="text-xs font-normal text-slate-500 ml-1">Estratégia & Copy</span></span>
           </div>
           <div className="flex items-center gap-3">
              <button 
@@ -174,11 +174,11 @@ const App: React.FC = () => {
         {appState === AppState.IDLE && (
           <div className="max-w-2xl mx-auto text-center mt-4 animate-fade-in">
             <h1 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
-              Pesque Emails e WhatsApp <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Com Iscas Digitais</span>
+              Gere Estratégias de Marketing <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Para Captar Leads Reais</span>
             </h1>
             <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-              Crie a estratégia completa para capturar contatos reais: desde a isca (Lead Magnet), até o anúncio e os prompts para gerar vídeos e imagens com IA.
+              Não vendemos listas. Nós criamos o <strong>plano completo</strong> (Copy, Criativos, Público e Isca Digital) para você rodar anúncios profissionais e atrair clientes qualificados.
             </p>
 
             <form onSubmit={handleSubmit} className="relative group">
@@ -519,4 +519,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default
