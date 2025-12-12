@@ -68,9 +68,13 @@ const marketingPlanSchema: Schema = {
   required: ["segment", "competitorAnalysis", "audienceStrategy", "leadMagnet", "creativePrompts", "adCopy", "agentFlow"]
 };
 
-export const generateMarketingPlan = async (segment: string, language: string, region: string, radius: string): Promise<MarketingPlan> => {
-  // Initialize AI here to ensure we pick up the latest env var (essential for some deployment environments)
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Now accepts apiKey explicitly
+export const generateMarketingPlan = async (segment: string, language: string, region: string, radius: string, apiKey: string): Promise<MarketingPlan> => {
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please provide a valid Gemini API Key.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: apiKey });
 
   try {
     const response = await ai.models.generateContent({
@@ -81,7 +85,7 @@ export const generateMarketingPlan = async (segment: string, language: string, r
       TASK: Create a "Lead Fisher" strategy (capture Emails/WhatsApp) for the niche: "${segment}".
       
       CRITICAL CONFIGURATION:
-      1. LANGUAGE: All content MUST be in "${language}". This is mandatory.
+      1. LANGUAGE: All content MUST be in "${language}". This is mandatory. Translate any English terms to "${language}" unless they are industry standard terms (like "Lead Magnet").
       2. LOCATION: Target "${region}".
       3. RADIUS/SCOPE: Strategy must be optimized for a scope of "${radius}". 
          (If radius is small/local, focus on local intent, "near me" keywords, and hyper-local creative details).
@@ -101,6 +105,7 @@ export const generateMarketingPlan = async (segment: string, language: string, r
       5. Automation: Questions to qualify the lead (in ${language}).
 
       Return ONLY valid JSON matching the schema.
+      ENSURE ALL TEXT FIELDS ARE IN ${language}.
       `,
       config: {
         responseMimeType: "application/json",
