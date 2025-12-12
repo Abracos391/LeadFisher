@@ -26,10 +26,29 @@ const App: React.FC = () => {
   const [segment, setSegment] = useState('');
   const [language, setLanguage] = useState('Português');
   const [region, setRegion] = useState('Brasil');
+  const [radius, setRadius] = useState('Nacional (País Inteiro)');
   
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [plan, setPlan] = useState<MarketingPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleGeolocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // Since we don't have a reverse geocoding API key, we use the coordinates directly.
+          // Gemini is smart enough to interpret coordinates as a location context.
+          const coords = `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
+          setRegion(`GPS: ${coords}`);
+        },
+        () => {
+          alert("Não foi possível obter sua localização. Verifique as permissões do navegador.");
+        }
+      );
+    } else {
+      alert("Geolocalização não suportada neste navegador.");
+    }
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -38,11 +57,21 @@ const App: React.FC = () => {
     setAppState(AppState.LOADING);
     setError(null);
     try {
-      const result = await generateMarketingPlan(segment, language, region);
+      const result = await generateMarketingPlan(segment, language, region, radius);
       setPlan(result);
       setAppState(AppState.SUCCESS);
-    } catch (err) {
-      setError("Falha ao gerar o plano. Verifique sua chave API ou tente novamente.");
+    } catch (err: any) {
+      console.error(err);
+      // Improve error message based on common API issues
+      let msg = "Falha ao gerar o plano.";
+      if (err.message?.includes('403') || err.message?.includes('API key')) {
+         msg = "Erro de Autenticação: Chave API inválida ou ausente. Verifique as configurações do servidor (Render).";
+      } else if (err.message?.includes('429')) {
+         msg = "Muitas requisições. Aguarde um momento e tente novamente.";
+      } else {
+         msg = "Ocorreu um erro inesperado na IA. Tente novamente.";
+      }
+      setError(msg);
       setAppState(AppState.ERROR);
     }
   };
@@ -54,7 +83,6 @@ const App: React.FC = () => {
   };
 
   const openAdsLib = (query: string) => {
-    // Generates a direct search URL for Meta Ads Library
     const url = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&q=${encodeURIComponent(query)}&sort_data[direction]=desc&sort_data[mode]=relevancy_monthly_grouped&media_type=all`;
     window.open(url, '_blank');
   };
@@ -72,7 +100,7 @@ const App: React.FC = () => {
             <span className="font-bold text-xl tracking-tight">Lead<span className="text-emerald-400">Fisher</span> <span className="text-xs font-normal text-slate-500 ml-1">Captura de Contatos</span></span>
           </div>
           <div className="text-xs font-mono text-slate-500 border border-slate-800 px-2 py-1 rounded">
-            v1.3.0
+            v1.4.0
           </div>
         </div>
       </header>
@@ -80,42 +108,68 @@ const App: React.FC = () => {
       <main className="max-w-5xl mx-auto px-6 py-12">
         
         {appState === AppState.IDLE && (
-          <div className="max-w-2xl mx-auto text-center mt-12 animate-fade-in">
+          <div className="max-w-2xl mx-auto text-center mt-8 animate-fade-in">
             <h1 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
               Pesque Emails e WhatsApp <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Com Iscas Digitais</span>
             </h1>
-            <p className="text-lg text-slate-400 mb-10 leading-relaxed">
+            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
               Crie a estratégia completa para capturar contatos reais: desde a isca (Lead Magnet), até o anúncio e os prompts para gerar vídeos e imagens com IA.
             </p>
 
             <form onSubmit={handleSubmit} className="relative group">
+              
+              {/* Controls Row */}
               <div className="flex flex-col md:flex-row gap-2 mb-2">
                  <select 
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500"
+                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 md:w-1/4"
                  >
                     <option value="Português">Português</option>
                     <option value="English">English</option>
                     <option value="Español">Español</option>
                     <option value="Français">Français</option>
                  </select>
-                 <input 
-                    type="text"
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    placeholder="Região (Ex: Brasil, SP, USA)"
-                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 flex-grow"
-                 />
+
+                 <div className="flex bg-slate-800 rounded border border-slate-700 focus-within:border-emerald-500 md:w-1/2">
+                    <input 
+                      type="text"
+                      value={region}
+                      onChange={(e) => setRegion(e.target.value)}
+                      placeholder="Localização (Cidade, Estado)"
+                      className="bg-transparent text-white text-sm px-3 py-2 focus:outline-none w-full"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handleGeolocation}
+                      title="Usar minha localização atual"
+                      className="px-3 text-slate-400 hover:text-emerald-400 border-l border-slate-700 hover:bg-slate-700/50 transition-colors"
+                    >
+                      📍
+                    </button>
+                 </div>
+
+                 <select 
+                    value={radius}
+                    onChange={(e) => setRadius(e.target.value)}
+                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 md:w-1/4"
+                 >
+                    <option value="Nacional (País Inteiro)">Nacional</option>
+                    <option value="Estadual">Estadual</option>
+                    <option value="Cidade (Local)">Cidade (Local)</option>
+                    <option value="5km (Bairro)">5km (Bairro)</option>
+                    <option value="1km (Hiper-local)">1km (Hiper-local)</option>
+                 </select>
               </div>
 
+              {/* Main Search */}
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
               <div className="relative flex items-center bg-slate-800 rounded-lg p-2 border border-slate-700 shadow-2xl">
                 <IconSearch className="w-6 h-6 text-slate-400 ml-3" />
                 <input
                   type="text"
-                  placeholder="Qual seu nicho? (Ex: Energia Solar)"
+                  placeholder="Qual seu nicho? (Ex: Energia Solar, Estética, Pizzaria)"
                   className="w-full bg-transparent border-none text-white px-4 py-3 focus:outline-none text-lg placeholder-slate-500"
                   value={segment}
                   onChange={(e) => setSegment(e.target.value)}
@@ -137,18 +191,25 @@ const App: React.FC = () => {
             <div className="w-16 h-16 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin mx-auto mb-6"></div>
             <h2 className="text-2xl font-bold text-white mb-2">Preparando a Isca...</h2>
             <p className="text-slate-400 animate-pulse">
-              Criando estratégia para <strong>{region}</strong> em <strong>{language}</strong>...
+              Criando estratégia para <strong>{region}</strong> ({radius}) em <strong>{language}</strong>...
             </p>
           </div>
         )}
 
         {appState === AppState.ERROR && (
           <div className="max-w-2xl mx-auto text-center mt-24">
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-6 inline-block">
-              <p className="text-red-400 font-medium">{error}</p>
+            <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl mb-6 inline-block max-w-lg">
+              <div className="flex justify-center mb-4">
+                 <span className="text-3xl">⚠️</span>
+              </div>
+              <p className="text-red-400 font-bold mb-2">Ops! Algo deu errado.</p>
+              <p className="text-slate-400 text-sm mb-4">{error}</p>
+              <div className="text-xs text-slate-500 border-t border-red-500/10 pt-4">
+                Dica: Se estiver usando o Render, verifique se a variável de ambiente <code>API_KEY</code> foi definida corretamente no painel.
+              </div>
             </div>
             <br />
-            <button onClick={handleReset} className="text-slate-300 hover:text-white underline">
+            <button onClick={handleReset} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors">
               Tentar Novamente
             </button>
           </div>
@@ -156,11 +217,12 @@ const App: React.FC = () => {
 
         {appState === AppState.SUCCESS && plan && (
           <div className="animate-fade-in-up">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-white">Estratégia de Captura: <span className="text-emerald-400">{plan.segment}</span></h2>
+                <h2 className="text-3xl font-bold text-white">Estratégia: <span className="text-emerald-400">{plan.segment}</span></h2>
                 <div className="flex gap-2 mt-2">
                    <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{region}</span>
+                   <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{radius}</span>
                    <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{language}</span>
                 </div>
               </div>
@@ -171,7 +233,7 @@ const App: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-               {/* Step 1: Lead Magnet (The "Hook") */}
+               {/* Step 1: Lead Magnet */}
                <StepCard 
                 stepNumber={1} 
                 title="Isca Digital (Sua Moeda de Troca)" 
@@ -293,9 +355,19 @@ const App: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-white mb-2 text-sm">Lookalike Source</h4>
-                    <p className="text-sm text-slate-400">{plan.audienceStrategy.lookalikeSource}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <h4 className="font-semibold text-white mb-2 text-sm">Comportamentos</h4>
+                        <div className="flex flex-wrap gap-1">
+                            {plan.audienceStrategy.behaviors.slice(0, 3).map((beh, idx) => (
+                                <span key={idx} className="text-xs text-slate-400 bg-slate-900 px-2 py-1 rounded">{beh}</span>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-white mb-2 text-sm">Lookalike</h4>
+                        <p className="text-sm text-slate-400">{plan.audienceStrategy.lookalikeSource}</p>
+                    </div>
                   </div>
                 </div>
               </StepCard>
