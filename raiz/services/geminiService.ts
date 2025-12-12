@@ -28,7 +28,7 @@ const marketingPlanSchema: Schema = {
     leadMagnet: {
       type: Type.OBJECT,
       properties: {
-        title: { type: Type.STRING, description: "Name of the free resource/bait to capture emails/phones" },
+        title: { type: Type.STRING, description: "Name of the free resource/bait. Must be IRRESISTIBLE." },
         format: { type: Type.STRING, description: "Format (e.g., PDF, Video Class, Template, Coupon)" },
         description: { type: Type.STRING, description: "What is inside the magnet" },
         whyItWorks: { type: Type.STRING, description: "Psychological reason why the user will give their contact info for this" }
@@ -38,17 +38,17 @@ const marketingPlanSchema: Schema = {
     creativePrompts: {
       type: Type.OBJECT,
       properties: {
-        videoPrompt: { type: Type.STRING, description: "Safe, high-quality prompt for AI Video generators (Veo, Sora, Runway)." },
-        imagePrompt: { type: Type.STRING, description: "Safe, high-quality prompt for AI Image generators (Midjourney, Dall-E)." },
-        thumbnailText: { type: Type.STRING, description: "Short, punchy text overlay for the video/image thumbnail (Compliant text)." }
+        videoPrompt: { type: Type.STRING, description: "SCROLL-STOPPING AI Video prompt. Must be a 'Pattern Interrupt' or Visual Metaphor. NO GENERIC SCENES." },
+        imagePrompt: { type: Type.STRING, description: "High-contrast, odd, or hyper-aesthetic AI Image prompt that acts as a click-magnet." },
+        thumbnailText: { type: Type.STRING, description: "Short, punchy text overlay (Clickbait style but honest)." }
       },
       required: ["videoPrompt", "imagePrompt", "thumbnailText"]
     },
     adCopy: {
       type: Type.OBJECT,
       properties: {
-        headline: { type: Type.STRING, description: "Ad headline (Compliant)" },
-        body: { type: Type.STRING, description: "Ad primary text (Compliant, no exaggerated claims)" },
+        headline: { type: Type.STRING, description: "Ad headline (High Conversion Hook)" },
+        body: { type: Type.STRING, description: "Ad primary text using PAS (Problem-Agitation-Solution) framework." },
         cta: { type: Type.STRING, description: "Call to Action" }
       },
       required: ["headline", "body", "cta"]
@@ -80,37 +80,41 @@ export const generateMarketingPlan = async (segment: string, language: string, r
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `
-      ROLE: Advanced Marketing Strategist & Ad Compliance Expert.
+      ROLE: World-Class Direct Response Copywriter & Viral Content Strategist.
+      (Think Ogilvy meets TikTok Trends).
       
-      TASK: Create a "Lead Fisher" strategy (capture Emails/WhatsApp) for the niche: "${segment}".
+      TASK: Create a HIGH-CONVERSION "Lead Fisher" strategy to capture leads for the niche: "${segment}".
+      
+      CONTEXT: The user wants to run ads on Meta/TikTok. 
+      The content must NOT be "lukewarm". It must be disruptive.
       
       CRITICAL CONFIGURATION:
-      1. LANGUAGE: All content MUST be in "${language}". This is mandatory. Translate any English terms to "${language}" unless they are industry standard terms (like "Lead Magnet").
-      2. LOCATION: Target "${region}".
-      3. RADIUS/SCOPE: Strategy must be optimized for a scope of "${radius}". 
-         (If radius is small/local, focus on local intent, "near me" keywords, and hyper-local creative details).
-      
-      SAFETY & CONTENT POLICIES (Meta/Google/TikTok):
-      - NO EXAGGERATED PROMISES: Avoid "100% guaranteed", "Miracle cure", "Easy money". Use neutral, verifiable language.
-      - NO DIRECT ADVICE: Avoid medical, legal, or financial advice. Use educational tone.
-      - NO SENSITIVE THEMES: Avoid politics, violence, adult content, or discrimination.
-      
-      OUTPUT REQUIREMENTS:
-      1. Competitor Analysis: Keywords to search in Ads Lib (in ${language}).
-      2. Lead Magnet: A specific, high-value "Bait" (PDF, Class, Template) relevant to ${region}.
-      3. Creative Prompts: 
-         - Detailed prompts for AI Video/Image generation.
-         - Thumbnail text that is catchy but compliant (in ${language}).
-      4. Ad Copy: Persuasive text (in ${language}).
-      5. Automation: Questions to qualify the lead (in ${language}).
+      1. LANGUAGE: Output in "${language}".
+      2. LOCATION: "${region}".
+      3. RADIUS: "${radius}".
 
+      GUIDELINES FOR "CREATIVE PROMPTS" (CRITICAL):
+      - **NO GENERIC LIFESTYLE SCENES**: Do NOT describe "happy families on the couch", "businessmen shaking hands", or "people looking at phones". This is boring and ignored.
+      - **USE "PATTERN INTERRUPTS"**: The video prompt must describe a scene that breaks the user's scroll pattern.
+        - Examples: A strange visual metaphor, something falling/breaking, a zoomed-in macro shot, high contrast colors, visual ASMR, or a "Reverse" video.
+      - **VISUAL HOOK**: The first 3 seconds must visually represent the PAIN or the SHOCKing result.
+      - **STYLE**: Cinematic, Hyper-realistic, or 3D Render.
+
+      GUIDELINES FOR "LEAD MAGNET" (THE BAIT):
+      - Must be a "No-Brainer" offer. Something so good it feels stupid to say no.
+      - Avoid generic "Newsletters". Use: "Cheatsheets", "Calculators", "Swipe Files", "Private Video Training".
+
+      GUIDELINES FOR "AD COPY":
+      - Use the "Hook -> Story -> Offer" framework.
+      - First sentence must be a punch in the gut (emotional or curiosity).
+
+      OUTPUT REQUIREMENTS:
       Return ONLY valid JSON matching the schema.
-      ENSURE ALL TEXT FIELDS ARE IN ${language}.
       `,
       config: {
         responseMimeType: "application/json",
         responseSchema: marketingPlanSchema,
-        temperature: 0.7
+        temperature: 0.85 
       }
     });
 
