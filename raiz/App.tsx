@@ -519,4 +519,4 @@ const App: React.FC = () => {
   );
 };
 
-export default 
+export default App;
