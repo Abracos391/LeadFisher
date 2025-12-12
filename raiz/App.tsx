@@ -1,8 +1,21 @@
+
 import React, { useState, useEffect } from 'react';
 import { generateMarketingPlan } from './services/geminiService';
 import { MarketingPlan, AppState } from './types';
-import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage, IconZap } from './components/Icons';
+import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage, IconZap, IconCreditCard, IconLock, IconStar } from './components/Icons';
 import StepCard from './components/StepCard';
+
+// --------------------------------------------------------
+// CONFIGURAÇÃO DO STRIPE
+// 1. Crie um "Payment Link" no Stripe Dashboard.
+// 2. Defina o preço (R$ 10,00).
+// 3. Nas configurações do link, defina a URL de redirecionamento após pagamento para:
+//    https://seu-dominio.com/?payment_success=true
+// 4. Cole o link gerado abaixo:
+// --------------------------------------------------------
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/test_5kA039"; // SUBSTITUA PELO SEU LINK REAL
+// URL para teste local (simulação):
+const LOCAL_TEST_PAYMENT = "?payment_success=true"; 
 
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   const [copied, setCopied] = useState(false);
@@ -28,17 +41,40 @@ const App: React.FC = () => {
   const [region, setRegion] = useState('Brasil');
   const [radius, setRadius] = useState('Nacional (País Inteiro)');
   
-  // API Key Management
-  const [customApiKey, setCustomApiKey] = useState('');
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  // Credit System
+  const [credits, setCredits] = useState<number>(0);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [plan, setPlan] = useState<MarketingPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Initialize App and Check for Payments
   useEffect(() => {
-    const savedKey = localStorage.getItem('gemini_api_key');
-    if (savedKey) setCustomApiKey(savedKey);
+    // 1. Load Credits from LocalStorage (Simple Frontend MVP Security)
+    const storedCredits = localStorage.getItem('lf_credits');
+    if (storedCredits === null) {
+      // New user gets 1 free credit
+      localStorage.setItem('lf_credits', '1');
+      setCredits(1);
+    } else {
+      setCredits(parseInt(storedCredits));
+    }
+
+    // 2. Check for Payment Success in URL (Stripe Callback)
+    const query = new URLSearchParams(window.location.search);
+    if (query.get('payment_success') === 'true') {
+       // Logic to add credits
+       const current = parseInt(localStorage.getItem('lf_credits') || '0');
+       const newBalance = current + 5;
+       localStorage.setItem('lf_credits', newBalance.toString());
+       setCredits(newBalance);
+       
+       // Clear URL
+       window.history.replaceState({}, document.title, window.location.pathname);
+       alert("🎉 Pagamento confirmado! 5 Créditos foram adicionados à sua conta.");
+       setShowPremiumModal(false);
+    }
   }, []);
 
   const handleGeolocation = () => {
@@ -57,40 +93,34 @@ const App: React.FC = () => {
     }
   };
 
-  const getEffectiveApiKey = () => {
-    if (customApiKey.trim()) return customApiKey.trim();
-    // Use process.env.API_KEY if available (injected by Vite)
-    return process.env.API_KEY || '';
-  };
-
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!segment.trim()) return;
 
-    const apiKey = getEffectiveApiKey();
-
-    if (!apiKey) {
-      setShowApiKeyInput(true);
-      setError("Chave API não encontrada. Por favor, insira sua chave Gemini API abaixo.");
-      setAppState(AppState.ERROR);
+    // CREDIT CHECK
+    if (credits <= 0) {
+      setShowPremiumModal(true);
       return;
     }
 
     setAppState(AppState.LOADING);
     setError(null);
     try {
-      // Pass the specific apiKey to the service
-      const result = await generateMarketingPlan(segment, language, region, radius, apiKey);
+      const result = await generateMarketingPlan(segment, language, region, radius);
       setPlan(result);
       setAppState(AppState.SUCCESS);
+      
+      // DEDUCT CREDIT ON SUCCESS
+      const newBalance = credits - 1;
+      setCredits(newBalance);
+      localStorage.setItem('lf_credits', newBalance.toString());
+
     } catch (err: any) {
       console.error(err);
       let msg = "Falha ao gerar o plano.";
       
-      // Smart error handling
       if (err.message?.includes('403') || err.message?.includes('API key') || err.message?.includes('invalid')) {
-         msg = "Erro de Autenticação: A chave API é inválida ou expirou.";
-         setShowApiKeyInput(true); // Automatically show input on auth error
+         msg = "Erro de Autenticação: Verifique a configuração da API Key no servidor.";
       } else if (err.message?.includes('429')) {
          msg = "Muitas requisições (Quota Excedida). Aguarde um momento.";
       } else {
@@ -100,12 +130,6 @@ const App: React.FC = () => {
       setError(msg);
       setAppState(AppState.ERROR);
     }
-  };
-
-  const handleSaveApiKey = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const key = e.target.value;
-    setCustomApiKey(key);
-    localStorage.setItem('gemini_api_key', key);
   };
 
   const handleReset = () => {
@@ -120,8 +144,71 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-50 selection:bg-emerald-500/30 font-sans">
+    <div className="min-h-screen bg-slate-900 text-slate-50 selection:bg-emerald-500/30 font-sans relative">
       
+      {/* PREMIUM MODAL */}
+      {showPremiumModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden">
+             {/* Decorative Background */}
+             <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-emerald-600 to-teal-800 opacity-20"></div>
+             
+             <button 
+                onClick={() => setShowPremiumModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+             >
+               ✕
+             </button>
+
+             <div className="p-8 relative">
+               <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mb-6 mx-auto border-4 border-slate-800 shadow-xl">
+                 <IconLock className="w-8 h-8 text-emerald-400" />
+               </div>
+               
+               <h2 className="text-2xl font-bold text-center text-white mb-2">Seus Créditos Acabaram</h2>
+               <p className="text-center text-slate-400 mb-6 text-sm">
+                 Você usou sua isca gratuita. Para continuar gerando estratégias profissionais, adquira um pacote.
+               </p>
+
+               <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 mb-6 hover:border-emerald-500/50 transition-colors cursor-pointer group">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-emerald-400 font-bold flex items-center gap-2">
+                       <IconStar className="w-4 h-4 fill-current" /> Premium Pack
+                    </span>
+                    <span className="text-white font-bold text-lg">R$ 10,00</span>
+                  </div>
+                  <ul className="space-y-2 mb-0">
+                    <li className="text-sm text-slate-300 flex items-center gap-2">
+                      <IconCheck className="w-3 h-3 text-emerald-500" /> 5 Consultas Completas
+                    </li>
+                    <li className="text-sm text-slate-300 flex items-center gap-2">
+                      <IconCheck className="w-3 h-3 text-emerald-500" /> Acesso a Prompts Avançados
+                    </li>
+                    <li className="text-sm text-slate-300 flex items-center gap-2">
+                      <IconCheck className="w-3 h-3 text-emerald-500" /> Sem Validade
+                    </li>
+                  </ul>
+               </div>
+
+               <a 
+                 href={STRIPE_PAYMENT_LINK === "https://buy.stripe.com/test_5kA039" ? LOCAL_TEST_PAYMENT : STRIPE_PAYMENT_LINK} 
+                 className="block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-lg text-center transition-all shadow-lg hover:shadow-emerald-500/20 flex items-center justify-center gap-2"
+               >
+                 <IconCreditCard className="w-5 h-5" />
+                 Comprar Créditos Agora
+               </a>
+               
+               <p className="text-[10px] text-center text-slate-500 mt-4">
+                 Pagamento seguro via Stripe. A liberação é imediata.
+                 {STRIPE_PAYMENT_LINK === "https://buy.stripe.com/test_5kA039" && (
+                   <span className="block text-yellow-500 mt-1">* Modo de Teste Ativo: O botão simula o pagamento.</span>
+                 )}
+               </p>
+             </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -132,44 +219,23 @@ const App: React.FC = () => {
             <span className="font-bold text-xl tracking-tight">Lead<span className="text-emerald-400">Fisher</span> <span className="text-xs font-normal text-slate-500 ml-1">Estratégia & Copy</span></span>
           </div>
           <div className="flex items-center gap-3">
-             <button 
-               onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-               className={`text-xs px-2 py-1 rounded border ${customApiKey ? 'border-emerald-500/50 text-emerald-400' : 'border-slate-700 text-slate-500'} hover:text-white transition-colors`}
+             {/* Credit Counter */}
+             <div 
+               onClick={() => setShowPremiumModal(true)}
+               className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1 rounded cursor-pointer transition-colors"
+               title="Clique para comprar mais"
              >
-               {customApiKey ? 'API Key Configurada' : 'Configurar API Key'}
-             </button>
-             <div className="text-xs font-mono text-slate-500 border border-slate-800 px-2 py-1 rounded">
-               v1.5.0
+                <IconZap className={`w-3 h-3 ${credits > 0 ? 'text-yellow-400' : 'text-slate-500'}`} />
+                <span className={`text-sm font-bold font-mono ${credits > 0 ? 'text-white' : 'text-red-400'}`}>
+                  {credits}
+                </span>
+                <span className="text-xs text-slate-400 hidden sm:inline">créditos</span>
              </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12">
-
-        {/* API Key Input Section (Conditional) */}
-        {showApiKeyInput && (
-          <div className="max-w-2xl mx-auto mb-8 bg-slate-800 p-4 rounded-lg border border-slate-700 animate-fade-in shadow-xl">
-            <h3 className="text-white font-bold mb-2 flex items-center gap-2">
-              <IconZap className="w-4 h-4 text-yellow-400" /> Configuração da API (Gemini)
-            </h3>
-            <p className="text-slate-400 text-sm mb-3">
-              Para garantir o funcionamento, insira sua chave da Google AI Studio. Ela será salva apenas no seu navegador.
-            </p>
-            <input 
-              type="password" 
-              placeholder="Cole sua API Key aqui (começa com AIza...)"
-              value={customApiKey}
-              onChange={handleSaveApiKey}
-              className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-emerald-500 focus:outline-none font-mono text-sm"
-            />
-            <div className="flex justify-end mt-2">
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-xs text-emerald-400 hover:underline">
-                Obter chave gratuitamente &rarr;
-              </a>
-            </div>
-          </div>
-        )}
         
         {appState === AppState.IDLE && (
           <div className="max-w-2xl mx-auto text-center mt-4 animate-fade-in">
@@ -519,4 +585,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default App
