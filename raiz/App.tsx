@@ -183,7 +183,7 @@ const App: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="relative group">
               
-              {/* Controls Row - ADDED z-10 here to fix clicking issue */}
+              {/* Controls Row - Z-10 ensures it is clickable above the glow */}
               <div className="relative z-10 flex flex-col md:flex-row gap-2 mb-2">
                  <select 
                     value={language}
@@ -519,4 +519,4 @@ const App: React.FC = () => {
   );
 };
 
-export default
+export default A
