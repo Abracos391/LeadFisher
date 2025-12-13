@@ -5,6 +5,7 @@ const marketingPlanSchema: Schema = {
   type: Type.OBJECT,
   properties: {
     segment: { type: Type.STRING, description: "The user provided segment name" },
+    platformStrategy: { type: Type.STRING, description: "Specific advice on how to succeed on the chosen platform (e.g. TikTok vs LinkedIn)" },
     competitorAnalysis: {
       type: Type.OBJECT,
       properties: {
@@ -38,20 +39,30 @@ const marketingPlanSchema: Schema = {
     creativePrompts: {
       type: Type.OBJECT,
       properties: {
-        videoPrompt: { type: Type.STRING, description: "SCROLL-STOPPING AI Video prompt. Must be a 'Pattern Interrupt' or Visual Metaphor. NO GENERIC SCENES." },
+        videoPrompt: { type: Type.STRING, description: "SCROLL-STOPPING AI Video prompt optimized for the chosen platform format (e.g. vertical for TikTok). Use Pattern Interrupts." },
         imagePrompt: { type: Type.STRING, description: "High-contrast, odd, or hyper-aesthetic AI Image prompt that acts as a click-magnet." },
-        thumbnailText: { type: Type.STRING, description: "Short, punchy text overlay (Clickbait style but honest)." }
+        thumbnailText: { type: Type.STRING, description: "Short, punchy text overlay." }
       },
       required: ["videoPrompt", "imagePrompt", "thumbnailText"]
     },
     adCopy: {
       type: Type.OBJECT,
       properties: {
-        headline: { type: Type.STRING, description: "Ad headline (High Conversion Hook)" },
-        body: { type: Type.STRING, description: "Ad primary text using PAS (Problem-Agitation-Solution) framework." },
+        variations: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              headline: { type: Type.STRING, description: "Hook headline" },
+              body: { type: Type.STRING, description: "Ad body text" }
+            },
+            required: ["headline", "body"]
+          },
+          description: "3 distinct variations for A/B testing"
+        },
         cta: { type: Type.STRING, description: "Call to Action" }
       },
-      required: ["headline", "body", "cta"]
+      required: ["variations", "cta"]
     },
     agentFlow: {
       type: Type.OBJECT,
@@ -65,11 +76,18 @@ const marketingPlanSchema: Schema = {
       required: ["platform", "trigger", "qualificationQuestions", "rejectionMessage", "successMessage"]
     }
   },
-  required: ["segment", "competitorAnalysis", "audienceStrategy", "leadMagnet", "creativePrompts", "adCopy", "agentFlow"]
+  required: ["segment", "platformStrategy", "competitorAnalysis", "audienceStrategy", "leadMagnet", "creativePrompts", "adCopy", "agentFlow"]
 };
 
-// API Key is now obtained directly from process.env.API_KEY
-export const generateMarketingPlan = async (segment: string, language: string, region: string, radius: string): Promise<MarketingPlan> => {
+export const generateMarketingPlan = async (
+  segment: string, 
+  language: string, 
+  region: string, 
+  radius: string,
+  platform: string,
+  budget: string,
+  objective: string
+): Promise<MarketingPlan> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   try {
@@ -77,32 +95,33 @@ export const generateMarketingPlan = async (segment: string, language: string, r
       model: 'gemini-2.5-flash',
       contents: `
       ROLE: World-Class Direct Response Copywriter & Viral Content Strategist.
-      (Think Ogilvy meets TikTok Trends).
       
-      TASK: Create a HIGH-CONVERSION "Lead Fisher" strategy to capture leads for the niche: "${segment}".
+      TASK: Create a HIGH-CONVERSION "Lead Fisher" strategy.
       
-      CONTEXT: The user wants to run ads on Meta/TikTok. 
-      The content must NOT be "lukewarm". It must be disruptive.
-      
-      CRITICAL CONFIGURATION:
-      1. LANGUAGE: Output in "${language}".
-      2. LOCATION: "${region}".
-      3. RADIUS: "${radius}".
+      INPUTS:
+      - Niche/Segment: "${segment}"
+      - Target Platform: "${platform}" (CRITICAL: Adapt tone/format for this)
+      - Location: "${region}" (${radius})
+      - Language: "${language}"
+      - Budget Level: "${budget}"
+      - Main Objective: "${objective}"
 
-      GUIDELINES FOR "CREATIVE PROMPTS" (CRITICAL):
-      - **NO GENERIC LIFESTYLE SCENES**: Do NOT describe "happy families on the couch", "businessmen shaking hands", or "people looking at phones". This is boring and ignored.
+      GUIDELINES FOR PLATFORM ADAPTATION:
+      - If TikTok/Kwai/Reels: Content must be fast, raw, UGC-style, entertainment-first. Text should be short caption style.
+      - If LinkedIn: Professional, value-driven, longer form.
+      - If Facebook/Instagram Feed: Visual hook + Storytelling copy (PAS framework).
+      - If YouTube: Story-based, education-focused.
+
+      GUIDELINES FOR "CREATIVE PROMPTS":
+      - **NO GENERIC LIFESTYLE SCENES**: Do NOT describe "happy families on the couch".
       - **USE "PATTERN INTERRUPTS"**: The video prompt must describe a scene that breaks the user's scroll pattern.
-        - Examples: A strange visual metaphor, something falling/breaking, a zoomed-in macro shot, high contrast colors, visual ASMR, or a "Reverse" video.
       - **VISUAL HOOK**: The first 3 seconds must visually represent the PAIN or the SHOCKing result.
-      - **STYLE**: Cinematic, Hyper-realistic, or 3D Render.
-
-      GUIDELINES FOR "LEAD MAGNET" (THE BAIT):
-      - Must be a "No-Brainer" offer. Something so good it feels stupid to say no.
-      - Avoid generic "Newsletters". Use: "Cheatsheets", "Calculators", "Swipe Files", "Private Video Training".
 
       GUIDELINES FOR "AD COPY":
-      - Use the "Hook -> Story -> Offer" framework.
-      - First sentence must be a punch in the gut (emotional or curiosity).
+      - Generate **3 DISTINCT VARIATIONS** of Headline and Body for A/B testing.
+      - Variation 1: Direct/Benefit focused.
+      - Variation 2: Story/Emotional focused.
+      - Variation 3: Controversial/Curiosity focused.
 
       OUTPUT REQUIREMENTS:
       Return ONLY valid JSON matching the schema.
