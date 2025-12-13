@@ -1,20 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { generateMarketingPlan } from './services/geminiService';
 import { MarketingPlan, AppState } from './types';
-import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage, IconZap, IconCreditCard, IconLock, IconStar } from './components/Icons';
+import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage, IconZap, IconCreditCard, IconLock, IconStar, IconPlatform, IconMoney, IconExport, IconAlert } from './components/Icons';
 import StepCard from './components/StepCard';
 
 // --------------------------------------------------------
 // CONFIGURAÇÃO DO STRIPE
-// 1. Crie um "Payment Link" no Stripe Dashboard.
-// 2. Defina o preço (R$ 10,00).
-// 3. Nas configurações do link, defina a URL de redirecionamento após pagamento para:
-//    https://seu-dominio.com/?payment_success=true
-// 4. Cole o link gerado abaixo:
-// --------------------------------------------------------
-const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/test_5kA039"; // SUBSTITUA PELO SEU LINK REAL
-// URL para teste local (simulação):
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/test_5kA039"; 
 const LOCAL_TEST_PAYMENT = "?payment_success=true"; 
 
 const CopyButton: React.FC<{ text: string }> = ({ text }) => {
@@ -25,52 +17,57 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button 
-      onClick={handleCopy} 
-      className="p-1.5 text-slate-400 hover:text-white transition-colors rounded hover:bg-slate-700"
-      title="Copiar texto"
-    >
-      {copied ? <IconCheck className="w-4 h-4 text-emerald-400" /> : <IconCopy className="w-4 h-4" />}
-    </button>
+    <div className="flex items-center gap-2">
+      <button 
+        onClick={handleCopy} 
+        className="p-1.5 text-slate-400 hover:text-white transition-colors rounded hover:bg-slate-700 relative group/btn"
+        title="Copiar texto"
+      >
+        {copied ? <IconCheck className="w-4 h-4 text-emerald-400" /> : <IconCopy className="w-4 h-4" />}
+      </button>
+      {copied && <span className="text-[10px] text-emerald-400 animate-fade-in font-bold">Copiado!</span>}
+    </div>
   );
 };
 
 const App: React.FC = () => {
   const [segment, setSegment] = useState('');
   const [language, setLanguage] = useState('Português');
-  const [region, setRegion] = useState('Brasil');
+  const [region, setRegion] = useState(''); // Default empty as per feedback
   const [radius, setRadius] = useState('Nacional (País Inteiro)');
   
-  // Credit System
+  // New Strategic Fields
+  const [platform, setPlatform] = useState('Meta Ads (Facebook/Instagram)');
+  const [budget, setBudget] = useState('Baixo (< R$ 1.000)');
+  const [objective, setObjective] = useState('Captura de Leads (Cadastro)');
+
+  // API Key Management
   const [credits, setCredits] = useState<number>(0);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false); // Confirmation before credit use
 
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [plan, setPlan] = useState<MarketingPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize App and Check for Payments
   useEffect(() => {
-    // 1. Load Credits from LocalStorage (Simple Frontend MVP Security)
+    // Load Credits
     const storedCredits = localStorage.getItem('lf_credits');
     if (storedCredits === null) {
-      // New user gets 1 free credit
       localStorage.setItem('lf_credits', '1');
       setCredits(1);
     } else {
       setCredits(parseInt(storedCredits));
     }
 
-    // 2. Check for Payment Success in URL (Stripe Callback)
+    // Payment Callback
     const query = new URLSearchParams(window.location.search);
     if (query.get('payment_success') === 'true') {
-       // Logic to add credits
        const current = parseInt(localStorage.getItem('lf_credits') || '0');
        const newBalance = current + 5;
        localStorage.setItem('lf_credits', newBalance.toString());
        setCredits(newBalance);
        
-       // Clear URL
        window.history.replaceState({}, document.title, window.location.pathname);
        alert("🎉 Pagamento confirmado! 5 Créditos foram adicionados à sua conta.");
        setShowPremiumModal(false);
@@ -93,24 +90,40 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleValidation = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!segment.trim()) return;
+    setError(null);
 
-    // CREDIT CHECK
+    // Strong validation
+    if (!segment.trim()) {
+      alert("Por favor, preencha o campo do nicho/segmento.");
+      return;
+    }
+    if (!region.trim()) {
+      alert("Por favor, preencha a localização ou use o botão de GPS.");
+      return;
+    }
+
+    // Credit Check
     if (credits <= 0) {
       setShowPremiumModal(true);
       return;
     }
 
+    // Show confirmation modal
+    setShowConfirmModal(true);
+  };
+
+  const executeGeneration = async () => {
+    setShowConfirmModal(false);
     setAppState(AppState.LOADING);
     setError(null);
+    
     try {
-      const result = await generateMarketingPlan(segment, language, region, radius);
+      const result = await generateMarketingPlan(segment, language, region, radius, platform, budget, objective);
       setPlan(result);
       setAppState(AppState.SUCCESS);
       
-      // DEDUCT CREDIT ON SUCCESS
       const newBalance = credits - 1;
       setCredits(newBalance);
       localStorage.setItem('lf_credits', newBalance.toString());
@@ -119,10 +132,10 @@ const App: React.FC = () => {
       console.error(err);
       let msg = "Falha ao gerar o plano.";
       
-      if (err.message?.includes('403') || err.message?.includes('API key') || err.message?.includes('invalid')) {
-         msg = "Erro de Autenticação: Verifique a configuração da API Key no servidor.";
+      if (err.message?.includes('403') || err.message?.includes('API key')) {
+         msg = "Erro de Autenticação: Verifique a configuração da API Key.";
       } else if (err.message?.includes('429')) {
-         msg = "Muitas requisições (Quota Excedida). Aguarde um momento.";
+         msg = "Muitas requisições. Aguarde um momento.";
       } else {
          msg = "Erro inesperado na IA. Tente novamente.";
       }
@@ -136,6 +149,11 @@ const App: React.FC = () => {
     setAppState(AppState.IDLE);
     setPlan(null);
     setSegment('');
+    // Keep user preferences (region, platform, etc)
+  };
+
+  const handleExport = () => {
+    window.print();
   };
 
   const openAdsLib = (query: string) => {
@@ -144,32 +162,58 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-50 selection:bg-emerald-500/30 font-sans relative">
+    <div className="min-h-screen bg-slate-900 text-slate-50 selection:bg-emerald-500/30 font-sans relative print:bg-white print:text-black">
       
+      {/* CONFIRMATION MODAL */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in print:hidden">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center mb-4">
+                <IconAlert className="w-6 h-6 text-yellow-500" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">Confirmar Geração</h3>
+              <p className="text-slate-400 text-sm mb-6">
+                Isso consumirá <strong>1 Crédito</strong>. Tem certeza que os dados estão corretos?
+              </p>
+              <div className="flex w-full gap-3">
+                <button 
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 py-2 px-4 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={executeGeneration}
+                  className="flex-1 py-2 px-4 bg-emerald-500 hover:bg-emerald-600 rounded text-white font-bold transition-colors"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PREMIUM MODAL */}
       {showPremiumModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in print:hidden">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden">
-             {/* Decorative Background */}
              <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-emerald-600 to-teal-800 opacity-20"></div>
-             
              <button 
                 onClick={() => setShowPremiumModal(false)}
                 className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
              >
                ✕
              </button>
-
              <div className="p-8 relative">
                <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mb-6 mx-auto border-4 border-slate-800 shadow-xl">
                  <IconLock className="w-8 h-8 text-emerald-400" />
                </div>
-               
                <h2 className="text-2xl font-bold text-center text-white mb-2">Seus Créditos Acabaram</h2>
                <p className="text-center text-slate-400 mb-6 text-sm">
                  Você usou sua isca gratuita. Para continuar gerando estratégias profissionais, adquira um pacote.
                </p>
-
                <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 mb-6 hover:border-emerald-500/50 transition-colors cursor-pointer group">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-emerald-400 font-bold flex items-center gap-2">
@@ -181,15 +225,8 @@ const App: React.FC = () => {
                     <li className="text-sm text-slate-300 flex items-center gap-2">
                       <IconCheck className="w-3 h-3 text-emerald-500" /> 5 Consultas Completas
                     </li>
-                    <li className="text-sm text-slate-300 flex items-center gap-2">
-                      <IconCheck className="w-3 h-3 text-emerald-500" /> Acesso a Prompts Avançados
-                    </li>
-                    <li className="text-sm text-slate-300 flex items-center gap-2">
-                      <IconCheck className="w-3 h-3 text-emerald-500" /> Sem Validade
-                    </li>
                   </ul>
                </div>
-
                <a 
                  href={STRIPE_PAYMENT_LINK === "https://buy.stripe.com/test_5kA039" ? LOCAL_TEST_PAYMENT : STRIPE_PAYMENT_LINK} 
                  className="block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-lg text-center transition-all shadow-lg hover:shadow-emerald-500/20 flex items-center justify-center gap-2"
@@ -197,20 +234,13 @@ const App: React.FC = () => {
                  <IconCreditCard className="w-5 h-5" />
                  Comprar Créditos Agora
                </a>
-               
-               <p className="text-[10px] text-center text-slate-500 mt-4">
-                 Pagamento seguro via Stripe. A liberação é imediata.
-                 {STRIPE_PAYMENT_LINK === "https://buy.stripe.com/test_5kA039" && (
-                   <span className="block text-yellow-500 mt-1">* Modo de Teste Ativo: O botão simula o pagamento.</span>
-                 )}
-               </p>
              </div>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 print:hidden">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={handleReset}>
             <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
@@ -219,7 +249,6 @@ const App: React.FC = () => {
             <span className="font-bold text-xl tracking-tight">Lead<span className="text-emerald-400">Fisher</span> <span className="text-xs font-normal text-slate-500 ml-1">Estratégia & Copy</span></span>
           </div>
           <div className="flex items-center gap-3">
-             {/* Credit Counter */}
              <div 
                onClick={() => setShowPremiumModal(true)}
                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1 rounded cursor-pointer transition-colors"
@@ -238,80 +267,139 @@ const App: React.FC = () => {
       <main className="max-w-5xl mx-auto px-6 py-12">
         
         {appState === AppState.IDLE && (
-          <div className="max-w-2xl mx-auto text-center mt-4 animate-fade-in">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
-              Gere Estratégias de Marketing <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Para Captar Leads Reais</span>
-            </h1>
-            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-              Não vendemos listas. Nós criamos o <strong>plano completo</strong> (Copy, Criativos, Público e Isca Digital) para você rodar anúncios profissionais e atrair clientes qualificados.
-            </p>
+          <div className="max-w-3xl mx-auto mt-4 animate-fade-in">
+            <div className="text-center mb-10">
+              <h1 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
+                Gere Estratégias de Marketing <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Para Captar Leads Reais</span>
+              </h1>
+              <p className="text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
+                Crie um plano completo (Copy, Criativos, Público e Isca) adaptado para sua plataforma preferida.
+              </p>
+            </div>
 
-            <form onSubmit={handleSubmit} className="relative group">
+            <form onSubmit={handleValidation} className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
               
-              {/* Controls Row - Z-10 added here to ensure clickable above glow */}
-              <div className="relative z-10 flex flex-col md:flex-row gap-2 mb-2">
+              {/* Configuration Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                 
+                 {/* Platform */}
+                 <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50">
+                    <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1 block flex items-center gap-1">
+                      <IconPlatform className="w-3 h-3" /> Plataforma
+                    </label>
+                    <select 
+                      value={platform}
+                      onChange={(e) => setPlatform(e.target.value)}
+                      className="w-full bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+                    >
+                      <option value="Meta Ads (Facebook/Instagram)">Meta Ads (Face/Insta)</option>
+                      <option value="TikTok Ads">TikTok Ads</option>
+                      <option value="Kwai Business">Kwai Business</option>
+                      <option value="YouTube Ads">YouTube Ads</option>
+                      <option value="LinkedIn Ads">LinkedIn Ads</option>
+                    </select>
+                 </div>
+
+                 {/* Budget */}
+                 <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50">
+                    <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1 block flex items-center gap-1">
+                      <IconMoney className="w-3 h-3" /> Orçamento Mensal
+                    </label>
+                    <select 
+                      value={budget}
+                      onChange={(e) => setBudget(e.target.value)}
+                      className="w-full bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+                    >
+                      <option value="Baixo (< R$ 1.000)">Baixo (&lt; R$ 1.000)</option>
+                      <option value="Médio (R$ 1.000 - R$ 5.000)">Médio (R$ 1k - 5k)</option>
+                      <option value="Alto (> R$ 5.000)">Alto (&gt; R$ 5.000)</option>
+                    </select>
+                 </div>
+
+                 {/* Location */}
+                 <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50 flex flex-col justify-center">
+                    <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1 block">Localização</label>
+                    <div className="flex items-center">
+                      <input 
+                        type="text"
+                        value={region}
+                        onChange={(e) => setRegion(e.target.value)}
+                        placeholder="Ex: São Paulo, Brasil"
+                        className="w-full bg-transparent text-white text-sm focus:outline-none placeholder-slate-600"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={handleGeolocation}
+                        title="Usar GPS"
+                        className="text-slate-400 hover:text-emerald-400 transition-colors"
+                      >
+                        📍
+                      </button>
+                    </div>
+                 </div>
+
+                 {/* Objective */}
+                 <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50">
+                    <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1 block flex items-center gap-1">
+                      <IconTarget className="w-3 h-3" /> Objetivo
+                    </label>
+                    <select 
+                      value={objective}
+                      onChange={(e) => setObjective(e.target.value)}
+                      className="w-full bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+                    >
+                      <option value="Captura de Leads (Cadastro)">Captura de Leads</option>
+                      <option value="Vendas Diretas (E-commerce)">Vendas Diretas</option>
+                      <option value="Mensagens (WhatsApp/Direct)">Mensagens (WhatsApp)</option>
+                      <option value="Reconhecimento de Marca">Branding</option>
+                    </select>
+                 </div>
+              </div>
+
+              {/* Main Search Input */}
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div className="relative flex items-center bg-slate-800 rounded-lg p-2 border border-slate-700">
+                  <IconSearch className="w-6 h-6 text-slate-400 ml-3" />
+                  <input
+                    type="text"
+                    placeholder="Qual seu nicho? (Ex: Energia Solar, Estética, Pizzaria)"
+                    className="w-full bg-transparent border-none text-white px-4 py-3 focus:outline-none text-lg placeholder-slate-500"
+                    value={segment}
+                    onChange={(e) => setSegment(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-md font-semibold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
+                  >
+                    Gerar <IconArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex justify-center mt-4 gap-4">
                  <select 
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 md:w-1/4 cursor-pointer hover:border-slate-500"
+                    className="bg-transparent text-slate-500 text-xs hover:text-white cursor-pointer focus:outline-none"
                  >
-                    <option value="Português">Português</option>
-                    <option value="English">English</option>
-                    <option value="Español">Español</option>
-                    <option value="Français">Français</option>
+                    <option value="Português">🇧🇷 Português</option>
+                    <option value="English">🇺🇸 English</option>
+                    <option value="Español">🇪🇸 Español</option>
                  </select>
-
-                 <div className="flex bg-slate-800 rounded border border-slate-700 focus-within:border-emerald-500 md:w-1/2 overflow-hidden">
-                    <input 
-                      type="text"
-                      value={region}
-                      onChange={(e) => setRegion(e.target.value)}
-                      placeholder="Localização (Ex: São Paulo, Brasil)"
-                      className="bg-transparent text-white text-sm px-3 py-2 focus:outline-none w-full placeholder-slate-500"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={handleGeolocation}
-                      title="Usar minha localização atual"
-                      className="px-3 text-slate-400 hover:text-emerald-400 border-l border-slate-700 hover:bg-slate-700/50 transition-colors flex items-center justify-center cursor-pointer"
-                    >
-                      📍
-                    </button>
-                 </div>
-
                  <select 
                     value={radius}
                     onChange={(e) => setRadius(e.target.value)}
-                    className="bg-slate-800 text-white text-sm rounded border border-slate-700 px-3 py-2 focus:outline-none focus:border-emerald-500 md:w-1/4 cursor-pointer hover:border-slate-500"
+                    className="bg-transparent text-slate-500 text-xs hover:text-white cursor-pointer focus:outline-none"
                  >
-                    <option value="Nacional (País Inteiro)">Nacional</option>
-                    <option value="Estadual">Estadual</option>
-                    <option value="Cidade (Local)">Cidade (Local)</option>
-                    <option value="5km (Bairro)">5km (Bairro)</option>
-                    <option value="1km (Hiper-local)">1km (Hiper-local)</option>
+                    <option value="Nacional">🌐 Nacional</option>
+                    <option value="Estadual">🗺️ Estadual</option>
+                    <option value="Cidade">🏙️ Cidade</option>
+                    <option value="Bairro (5km)">🏘️ Bairro (5km)</option>
                  </select>
               </div>
 
-              {/* Main Search */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative flex items-center bg-slate-800 rounded-lg p-2 border border-slate-700 shadow-2xl z-0">
-                <IconSearch className="w-6 h-6 text-slate-400 ml-3" />
-                <input
-                  type="text"
-                  placeholder="Qual seu nicho? (Ex: Energia Solar, Estética, Pizzaria)"
-                  className="w-full bg-transparent border-none text-white px-4 py-3 focus:outline-none text-lg placeholder-slate-500"
-                  value={segment}
-                  onChange={(e) => setSegment(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  disabled={!segment.trim()}
-                  className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-md font-semibold transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  Criar Isca <IconArrowRight className="w-4 h-4" />
-                </button>
-              </div>
             </form>
           </div>
         )}
@@ -321,7 +409,7 @@ const App: React.FC = () => {
             <div className="w-16 h-16 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin mx-auto mb-6"></div>
             <h2 className="text-2xl font-bold text-white mb-2">Preparando a Isca...</h2>
             <p className="text-slate-400 animate-pulse">
-              Criando estratégia para <strong>{region}</strong> ({radius}) em <strong>{language}</strong>...
+              Adaptando estratégia para <strong>{platform}</strong>...
             </p>
           </div>
         )}
@@ -336,29 +424,45 @@ const App: React.FC = () => {
               <p className="text-slate-300 text-sm mb-4">{error}</p>
             </div>
             <br />
-            <button onClick={handleReset} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors">
-              Voltar
+            <button onClick={() => setAppState(AppState.IDLE)} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-600 transition-colors">
+              Tentar Novamente
             </button>
           </div>
         )}
 
         {appState === AppState.SUCCESS && plan && (
-          <div className="animate-fade-in-up">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div className="animate-fade-in-up pb-20">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 print:hidden">
               <div>
                 <h2 className="text-3xl font-bold text-white">Estratégia: <span className="text-emerald-400">{plan.segment}</span></h2>
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 mt-2 flex-wrap">
+                   <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700 flex items-center gap-1"><IconPlatform className="w-3 h-3"/> {platform}</span>
                    <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{region}</span>
-                   <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{radius}</span>
-                   <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{language}</span>
+                   <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{objective}</span>
                 </div>
               </div>
-              <button onClick={handleReset} className="text-sm text-slate-500 hover:text-white px-4 py-2 border border-slate-700 rounded hover:bg-slate-800 transition-colors">
-                Nova Pesquisa
-              </button>
+              <div className="flex gap-2">
+                <button onClick={handleExport} className="text-sm text-slate-300 hover:text-white px-4 py-2 border border-slate-700 rounded hover:bg-slate-800 transition-colors flex items-center gap-2">
+                   <IconExport className="w-4 h-4" /> Salvar PDF
+                </button>
+                <button onClick={handleReset} className="text-sm bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600 transition-colors font-bold">
+                  Nova Pesquisa
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Platform Advice Alert */}
+            <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg mb-8 flex gap-3 items-start">
+               <div className="p-1 bg-blue-500/20 rounded mt-0.5">
+                 <IconPlatform className="w-5 h-5 text-blue-400" />
+               </div>
+               <div>
+                 <h4 className="text-blue-400 font-bold text-sm mb-1">Estratégia Adaptada para {platform}</h4>
+                 <p className="text-slate-300 text-sm">{plan.platformStrategy}</p>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:block print:space-y-6">
               
                {/* Step 1: Lead Magnet */}
                <StepCard 
@@ -367,19 +471,18 @@ const App: React.FC = () => {
                 icon={<IconMagnet className="w-5 h-5 text-emerald-400" />}
                 colorClass="text-emerald-400"
               >
-                <div className="bg-slate-900 rounded-lg p-5 border border-slate-700 mb-2">
+                <div className="bg-slate-900 rounded-lg p-5 border border-slate-700 mb-2 print:border-slate-300 print:bg-white print:text-black">
                    <div className="flex justify-between items-start mb-2">
-                     <span className="text-xs text-emerald-500 font-bold uppercase tracking-wide border border-emerald-500/30 px-2 py-0.5 rounded-full">{plan.leadMagnet.format}</span>
+                     <span className="text-xs text-emerald-500 font-bold uppercase tracking-wide border border-emerald-500/30 px-2 py-0.5 rounded-full print:border-black print:text-black">{plan.leadMagnet.format}</span>
                    </div>
-                   <h3 className="text-xl font-bold text-white mb-2">{plan.leadMagnet.title}</h3>
-                   <p className="text-slate-300 text-sm mb-4 leading-relaxed">{plan.leadMagnet.description}</p>
+                   <h3 className="text-xl font-bold text-white mb-2 print:text-black">{plan.leadMagnet.title}</h3>
+                   <p className="text-slate-300 text-sm mb-4 leading-relaxed print:text-gray-700">{plan.leadMagnet.description}</p>
                    
-                   <div className="bg-emerald-900/10 border-l-2 border-emerald-500 pl-3 py-1">
-                      <span className="text-xs text-emerald-400 font-bold block">Por que funciona?</span>
-                      <p className="text-xs text-slate-400">{plan.leadMagnet.whyItWorks}</p>
+                   <div className="bg-emerald-900/10 border-l-2 border-emerald-500 pl-3 py-1 print:bg-gray-100 print:border-black">
+                      <span className="text-xs text-emerald-400 font-bold block print:text-black">Por que funciona?</span>
+                      <p className="text-xs text-slate-400 print:text-gray-600">{plan.leadMagnet.whyItWorks}</p>
                    </div>
                 </div>
-                <p className="text-xs text-slate-500 italic text-center">Ofereça isso GRATUITAMENTE em troca do Email ou WhatsApp.</p>
               </StepCard>
 
               {/* Step 2: Creative Prompts */}
@@ -392,77 +495,78 @@ const App: React.FC = () => {
                 <div className="space-y-4">
                   
                   {/* Video Prompt */}
-                  <div className="bg-slate-900 rounded p-3 border border-slate-700">
+                  <div className="bg-slate-900 rounded p-3 border border-slate-700 print:bg-white print:border-slate-300">
                     <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-2">
-                         <IconVideo className="w-4 h-4 text-purple-400" />
-                         <span className="text-sm font-bold text-white">Prompt para Vídeo (IA)</span>
+                         <IconVideo className="w-4 h-4 text-purple-400 print:text-black" />
+                         <span className="text-sm font-bold text-white print:text-black">Prompt para Vídeo (IA)</span>
                       </div>
-                      <CopyButton text={plan.creativePrompts.videoPrompt} />
+                      <div className="print:hidden"><CopyButton text={plan.creativePrompts.videoPrompt} /></div>
                     </div>
-                    <p className="text-xs text-slate-400 font-mono line-clamp-4 hover:line-clamp-none transition-all cursor-pointer bg-black/30 p-2 rounded">
+                    <p className="text-xs text-slate-400 font-mono line-clamp-4 hover:line-clamp-none transition-all cursor-pointer bg-black/30 p-2 rounded print:text-black print:bg-gray-100 print:line-clamp-none">
                       {plan.creativePrompts.videoPrompt}
                     </p>
                     <span className="text-[10px] text-slate-600 mt-1 block">Use em: Veo, Sora, Runway, Kling.</span>
                   </div>
 
                   {/* Image Prompt */}
-                  <div className="bg-slate-900 rounded p-3 border border-slate-700">
+                  <div className="bg-slate-900 rounded p-3 border border-slate-700 print:bg-white print:border-slate-300">
                     <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-2">
-                         <IconImage className="w-4 h-4 text-pink-400" />
-                         <span className="text-sm font-bold text-white">Prompt para Imagem (IA)</span>
+                         <IconImage className="w-4 h-4 text-pink-400 print:text-black" />
+                         <span className="text-sm font-bold text-white print:text-black">Prompt para Imagem (IA)</span>
                       </div>
-                      <CopyButton text={plan.creativePrompts.imagePrompt} />
+                      <div className="print:hidden"><CopyButton text={plan.creativePrompts.imagePrompt} /></div>
                     </div>
-                    <p className="text-xs text-slate-400 font-mono line-clamp-4 hover:line-clamp-none transition-all cursor-pointer bg-black/30 p-2 rounded">
+                    <p className="text-xs text-slate-400 font-mono line-clamp-4 hover:line-clamp-none transition-all cursor-pointer bg-black/30 p-2 rounded print:text-black print:bg-gray-100 print:line-clamp-none">
                       {plan.creativePrompts.imagePrompt}
                     </p>
                     <span className="text-[10px] text-slate-600 mt-1 block">Use em: Midjourney, Dall-E 3, Flux.</span>
                   </div>
 
                    {/* Thumbnail Text */}
-                   <div className="bg-slate-900 rounded p-3 border border-slate-700 flex items-center justify-between">
+                   <div className="bg-slate-900 rounded p-3 border border-slate-700 flex items-center justify-between print:bg-white print:border-slate-300">
                      <div>
-                       <span className="text-xs text-orange-400 font-bold block">Texto para Capa/Thumbnail</span>
-                       <p className="text-white font-bold text-sm">"{plan.creativePrompts.thumbnailText}"</p>
+                       <span className="text-xs text-orange-400 font-bold block print:text-black">Texto para Capa/Thumbnail</span>
+                       <p className="text-white font-bold text-sm print:text-black">"{plan.creativePrompts.thumbnailText}"</p>
                      </div>
-                     <CopyButton text={plan.creativePrompts.thumbnailText} />
+                     <div className="print:hidden"><CopyButton text={plan.creativePrompts.thumbnailText} /></div>
                    </div>
 
                 </div>
               </StepCard>
 
-              {/* Step 3: Ad Copy */}
+              {/* Step 3: Ad Copy with A/B Testing */}
               <StepCard 
                 stepNumber={3} 
-                title="Copy do Anúncio (Texto)" 
+                title="Copy do Anúncio (Teste A/B)" 
                 icon={<IconMessage className="w-5 h-5 text-blue-400" />}
                 colorClass="text-blue-400"
               >
-                <div className="bg-slate-900 rounded-lg p-4 border border-slate-700 font-mono text-sm space-y-4">
-                   <div>
-                      <span className="text-xs text-blue-400 uppercase font-bold tracking-wide">Headline</span>
-                      <div className="flex justify-between items-start mt-1">
-                        <p className="text-white font-bold">{plan.adCopy.headline}</p>
-                        <CopyButton text={plan.adCopy.headline} />
-                      </div>
-                   </div>
-                   
-                   <div className="border-t border-slate-800 pt-3">
-                      <span className="text-xs text-blue-400 uppercase font-bold tracking-wide">Legenda</span>
-                      <div className="relative mt-1 group">
-                         <p className="text-slate-300 whitespace-pre-wrap">{plan.adCopy.body}</p>
-                         <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <CopyButton text={plan.adCopy.body} />
-                         </div>
-                      </div>
-                   </div>
-
-                   <div className="border-t border-slate-800 pt-3 flex justify-between items-center">
-                      <span className="text-xs text-blue-400 uppercase font-bold tracking-wide">Botão (CTA)</span>
-                      <span className="px-3 py-1 bg-slate-800 text-white rounded text-xs border border-slate-600">{plan.adCopy.cta}</span>
-                   </div>
+                <div className="space-y-4">
+                  {plan.adCopy.variations.map((variant, idx) => (
+                    <div key={idx} className="bg-slate-900 rounded-lg p-4 border border-slate-700 font-mono text-sm print:bg-white print:border-slate-300">
+                       <div className="flex justify-between items-center mb-2 border-b border-slate-800 pb-2 print:border-slate-200">
+                          <span className="text-xs text-blue-400 uppercase font-bold tracking-wide print:text-blue-700">Variação {idx + 1}</span>
+                          <div className="print:hidden"><CopyButton text={`${variant.headline}\n\n${variant.body}`} /></div>
+                       </div>
+                       
+                       <div className="mb-3">
+                          <span className="text-[10px] text-slate-500 block mb-1">Headline</span>
+                          <p className="text-white font-bold print:text-black">{variant.headline}</p>
+                       </div>
+                       
+                       <div>
+                          <span className="text-[10px] text-slate-500 block mb-1">Texto</span>
+                          <p className="text-slate-300 whitespace-pre-wrap print:text-gray-800">{variant.body}</p>
+                       </div>
+                    </div>
+                  ))}
+                  
+                  <div className="flex justify-between items-center bg-blue-900/20 p-3 rounded border border-blue-500/20 print:bg-gray-100 print:border-gray-300">
+                     <span className="text-xs text-blue-300 uppercase font-bold tracking-wide print:text-black">Botão (CTA)</span>
+                     <span className="px-3 py-1 bg-slate-800 text-white rounded text-xs border border-slate-600 print:bg-white print:text-black print:border-black">{plan.adCopy.cta}</span>
+                  </div>
                 </div>
               </StepCard>
               
@@ -475,25 +579,25 @@ const App: React.FC = () => {
               >
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-semibold text-white mb-2 text-sm">Segmentação (Interesses)</h4>
+                    <h4 className="font-semibold text-white mb-2 text-sm print:text-black">Segmentação (Interesses)</h4>
                     <div className="flex flex-wrap gap-2">
                       {plan.audienceStrategy.interests.map((int, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-amber-900/20 border border-amber-500/20 text-amber-300 rounded text-xs">{int}</span>
+                        <span key={idx} className="px-2 py-1 bg-amber-900/20 border border-amber-500/20 text-amber-300 rounded text-xs print:bg-gray-100 print:text-black print:border-black">{int}</span>
                       ))}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <h4 className="font-semibold text-white mb-2 text-sm">Comportamentos</h4>
+                        <h4 className="font-semibold text-white mb-2 text-sm print:text-black">Comportamentos</h4>
                         <div className="flex flex-wrap gap-1">
                             {plan.audienceStrategy.behaviors.slice(0, 3).map((beh, idx) => (
-                                <span key={idx} className="text-xs text-slate-400 bg-slate-900 px-2 py-1 rounded">{beh}</span>
+                                <span key={idx} className="text-xs text-slate-400 bg-slate-900 px-2 py-1 rounded print:text-black print:bg-gray-100">{beh}</span>
                             ))}
                         </div>
                     </div>
                     <div>
-                        <h4 className="font-semibold text-white mb-2 text-sm">Lookalike</h4>
-                        <p className="text-sm text-slate-400">{plan.audienceStrategy.lookalikeSource}</p>
+                        <h4 className="font-semibold text-white mb-2 text-sm print:text-black">Lookalike</h4>
+                        <p className="text-sm text-slate-400 print:text-gray-700">{plan.audienceStrategy.lookalikeSource}</p>
                     </div>
                   </div>
                 </div>
@@ -506,7 +610,7 @@ const App: React.FC = () => {
                 icon={<IconSearch className="w-5 h-5 text-sky-400" />}
                 colorClass="text-sky-400"
               >
-                <p className="text-sm text-slate-400 mb-4">Clique para ver os anúncios ativos na Meta Ads Library:</p>
+                <p className="text-sm text-slate-400 mb-4 print:text-gray-700">Clique para ver os anúncios ativos na Meta Ads Library:</p>
                 
                 <div className="space-y-4">
                   {/* Competidores Diretos */}
@@ -515,13 +619,13 @@ const App: React.FC = () => {
                       <button 
                         key={idx} 
                         onClick={() => openAdsLib(comp)} 
-                        className="flex items-center justify-between w-full p-3 bg-slate-900 border border-slate-700 hover:border-sky-500 hover:bg-slate-800 rounded-lg text-left transition-all group"
+                        className="flex items-center justify-between w-full p-3 bg-slate-900 border border-slate-700 hover:border-sky-500 hover:bg-slate-800 rounded-lg text-left transition-all group print:bg-white print:border-slate-300"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                          <span className="text-slate-200 font-medium group-hover:text-white">{comp}</span>
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse print:hidden"></span>
+                          <span className="text-slate-200 font-medium group-hover:text-white print:text-black">{comp}</span>
                         </div>
-                        <span className="text-xs bg-sky-500/10 text-sky-400 px-2 py-1 rounded border border-sky-500/20 flex items-center gap-1 group-hover:bg-sky-500 group-hover:text-white transition-colors">
+                        <span className="text-xs bg-sky-500/10 text-sky-400 px-2 py-1 rounded border border-sky-500/20 flex items-center gap-1 group-hover:bg-sky-500 group-hover:text-white transition-colors print:hidden">
                           Ver Ads <IconArrowRight className="w-3 h-3" />
                         </span>
                       </button>
@@ -536,7 +640,7 @@ const App: React.FC = () => {
                           <button 
                             key={idx} 
                             onClick={() => openAdsLib(kw)} 
-                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-full border border-slate-700 hover:border-sky-400 text-sm text-slate-300 hover:text-white transition-all flex items-center gap-2"
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-full border border-slate-700 hover:border-sky-400 text-sm text-slate-300 hover:text-white transition-all flex items-center gap-2 print:bg-white print:text-black print:border-black"
                           >
                              <IconSearch className="w-3 h-3 text-slate-500" /> {kw}
                           </button>
@@ -554,20 +658,20 @@ const App: React.FC = () => {
                 colorClass="text-pink-400"
               >
                 <div className="space-y-4">
-                   <div className="bg-slate-900/80 p-4 rounded-lg border-l-2 border-pink-500">
-                      <h4 className="text-sm font-bold text-white mb-3">Qualificação (Chatbot)</h4>
+                   <div className="bg-slate-900/80 p-4 rounded-lg border-l-2 border-pink-500 print:bg-white print:border-pink-300">
+                      <h4 className="text-sm font-bold text-white mb-3 print:text-black">Qualificação (Chatbot)</h4>
                       <div className="space-y-3">
                          {plan.agentFlow.qualificationQuestions.map((q, idx) => (
                            <div key={idx} className="flex gap-2">
                               <span className="text-pink-500 font-mono text-xs pt-1">{idx + 1}.</span>
-                              <p className="text-sm text-slate-300">{q}</p>
+                              <p className="text-sm text-slate-300 print:text-gray-700">{q}</p>
                            </div>
                          ))}
                       </div>
                    </div>
-                   <div className="p-3 bg-emerald-900/10 border border-emerald-500/20 rounded">
-                       <span className="text-xs text-emerald-400 font-bold block mb-1">Entrega da Isca (Sucesso)</span>
-                       <p className="text-xs text-slate-400 leading-tight">"{plan.agentFlow.successMessage}"</p>
+                   <div className="p-3 bg-emerald-900/10 border border-emerald-500/20 rounded print:bg-gray-100 print:border-black">
+                       <span className="text-xs text-emerald-400 font-bold block mb-1 print:text-black">Entrega da Isca (Sucesso)</span>
+                       <p className="text-xs text-slate-400 leading-tight print:text-gray-700">"{plan.agentFlow.successMessage}"</p>
                    </div>
                 </div>
               </StepCard>
@@ -578,11 +682,11 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-900 py-8 text-center text-slate-600 text-sm">
+      <footer className="border-t border-slate-800 bg-slate-900 py-8 text-center text-slate-600 text-sm print:hidden">
         <p>LeadFisher MVP &copy; {new Date().getFullYear()} - Powered by Gemini AI</p>
       </footer>
     </div>
   );
 };
 
-export default App
+export default App;
