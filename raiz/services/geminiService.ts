@@ -5,44 +5,44 @@ const marketingPlanSchema: Schema = {
   type: Type.OBJECT,
   properties: {
     segment: { type: Type.STRING, description: "The user provided segment name" },
-    platformStrategy: { type: Type.STRING, description: "Specific advice on how to succeed on the chosen platform" },
+    platformStrategy: { type: Type.STRING, description: "Highly specific strategy based on the user's USP" },
     competitorAnalysis: {
       type: Type.OBJECT,
       properties: {
-        searchKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5 keywords to search in Meta Ads Library" },
-        bigCompetitors: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Names of 3-5 potential big competitors" },
-        visualStyle: { type: Type.STRING, description: "Description of common visual patterns" },
-        commentTriggers: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Phrases in comments indicating intent" }
+        searchKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific long-tail keywords" },
+        bigCompetitors: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Real competitors or big players in this specific sub-niche" },
+        visualStyle: { type: Type.STRING, description: "Detailed visual direction (colors, mood, pacing)" },
+        commentTriggers: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific questions customers ask in this niche" }
       },
       required: ["searchKeywords", "bigCompetitors", "visualStyle", "commentTriggers"]
     },
     audienceStrategy: {
       type: Type.OBJECT,
       properties: {
-        interests: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Targeting interests" },
-        behaviors: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Targeting behaviors" },
-        lookalikeSource: { type: Type.STRING, description: "Source for Lookalike audience" },
-        excludedKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Keywords to exclude" }
+        interests: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific interests, not generic ones" },
+        behaviors: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Digital behaviors" },
+        lookalikeSource: { type: Type.STRING, description: "Best source for LAL based on the business model" },
+        excludedKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Negative targeting to save money" }
       },
       required: ["interests", "behaviors", "lookalikeSource", "excludedKeywords"]
     },
     leadMagnet: {
       type: Type.OBJECT,
       properties: {
-        title: { type: Type.STRING, description: "Name of the free resource" },
-        format: { type: Type.STRING, description: "Format (e.g., PDF, Video Class)" },
-        description: { type: Type.STRING, description: "Content description" },
-        whyItWorks: { type: Type.STRING, description: "Psychological reason" },
-        creationTools: { type: Type.ARRAY, items: { type: Type.STRING }, description: "3 specific free/cheap tools to CREATE this magnet (e.g. Canva, CapCut, Google Docs)" }
+        title: { type: Type.STRING, description: "Catchy, high-value title" },
+        format: { type: Type.STRING, description: "Format (e.g., Calculator, Template, Mini-course)" },
+        description: { type: Type.STRING, description: "What makes this specific magnet irresistible" },
+        whyItWorks: { type: Type.STRING, description: "Psychological trigger analysis" },
+        creationTools: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific tools" }
       },
       required: ["title", "format", "description", "whyItWorks", "creationTools"]
     },
     creativePrompts: {
       type: Type.OBJECT,
       properties: {
-        videoPrompt: { type: Type.STRING, description: "AI Video prompt" },
-        imagePrompt: { type: Type.STRING, description: "AI Image prompt" },
-        thumbnailText: { type: Type.STRING, description: "Overlay text" }
+        videoPrompt: { type: Type.STRING, description: "A complex, scene-by-scene AI video prompt. NO GENERIC SCENES." },
+        imagePrompt: { type: Type.STRING, description: "High-detail photography prompt" },
+        thumbnailText: { type: Type.STRING, description: "Clickbait-style text overlay" }
       },
       required: ["videoPrompt", "imagePrompt", "thumbnailText"]
     },
@@ -54,33 +54,33 @@ const marketingPlanSchema: Schema = {
           items: {
             type: Type.OBJECT,
             properties: {
-              headline: { type: Type.STRING, description: "Headline" },
-              body: { type: Type.STRING, description: "Body text" }
+              headline: { type: Type.STRING, description: "Hook-driven headline" },
+              body: { type: Type.STRING, description: "Copywriting using PAS or AIDA frameworks" }
             },
             required: ["headline", "body"]
           },
         },
-        cta: { type: Type.STRING, description: "Call to Action" }
+        cta: { type: Type.STRING, description: "Action-oriented CTA" }
       },
       required: ["variations", "cta"]
     },
     agentFlow: {
       type: Type.OBJECT,
       properties: {
-        platform: { type: Type.STRING, description: "Recommended platform" },
-        trigger: { type: Type.STRING, description: "Trigger action" },
-        qualificationQuestions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Qualification questions" },
-        rejectionMessage: { type: Type.STRING, description: "Rejection message" },
-        successMessage: { type: Type.STRING, description: "Success message" }
+        platform: { type: Type.STRING, description: "Platform" },
+        trigger: { type: Type.STRING, description: "Trigger" },
+        qualificationQuestions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Hard qualification questions to filter leads" },
+        rejectionMessage: { type: Type.STRING, description: "Polite rejection" },
+        successMessage: { type: Type.STRING, description: "Success" }
       },
       required: ["platform", "trigger", "qualificationQuestions", "rejectionMessage", "successMessage"]
     },
     implementationGuide: {
       type: Type.OBJECT,
       properties: {
-        platformWalkthrough: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5-7 very specific steps to set up the campaign on the chosen platform (e.g., 'Click Create', 'Select Sales Objective')." },
-        budgetSetup: { type: Type.STRING, description: "Specific instruction on how to set the budget (e.g., 'Set CBO off, use Daily Budget at Ad Set level')." },
-        bestPractices: { type: Type.ARRAY, items: { type: Type.STRING }, description: "3 tips to avoid losing money (e.g., 'Turn off Audience Network')." }
+        platformWalkthrough: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Technical steps" },
+        budgetSetup: { type: Type.STRING, description: "Specific budget strategy" },
+        bestPractices: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Money-saving tips" }
       },
       required: ["platformWalkthrough", "budgetSetup", "bestPractices"]
     }
@@ -95,7 +95,9 @@ export const generateMarketingPlan = async (
   radius: string,
   platform: string,
   budget: string,
-  objective: string
+  objective: string,
+  usp: string, // Unique Selling Proposition
+  painPoints: string // Specific Customer Pain
 ): Promise<MarketingPlan> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -103,33 +105,39 @@ export const generateMarketingPlan = async (
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `
-      ROLE: Expert Digital Marketing Implementation Coach.
+      ROLE: Elite Direct Response Marketing Strategist (Dan Kennedy style).
       
-      TASK: Create a marketing strategy AND a step-by-step technical execution guide for a BEGINNER.
+      TASK: Diagnose the business needs and generate a BESPOKE, HIGH-CONVERSION marketing plan.
       
-      INPUTS:
-      - Niche: "${segment}"
+      STRICT WARNING: 
+      - Do NOT output generic advice like "create high quality content".
+      - Do NOT use generic video prompts like "a happy person smiling". 
+      - The Video Prompt MUST be a specific, visual representation of the 'USP' or the 'Pain Point'. 
+      - If the user provides a specific differentiator, the ENTIRE strategy must pivot around it.
+      
+      INPUT DATA (DIAGNOSIS):
+      - Niche/Business: "${segment}"
+      - The "Killer" Feature (USP): "${usp}"
+      - Customer's Deepest Pain: "${painPoints}"
       - Platform: "${platform}"
       - Location: "${region}" (${radius})
       - Budget: "${budget}"
       - Objective: "${objective}"
       - Language: "${language}"
 
-      CRITICAL INSTRUCTION FOR "IMPLEMENTATION GUIDE":
-      - The user is a LAYPERSON. Do not just say "Target audience". Say "Go to Audience section, select Location, type [Interest]".
-      - Explain exactly how to configure the budget based on the input "${budget}".
-      - Recommend specific TOOLS to create the Lead Magnet (e.g. Canva for PDFs, Loom for video).
+      GUIDELINES:
+      1. **Lead Magnet**: Must solve the specific "${painPoints}" immediately.
+      2. **Video Prompt**: Must describe a "Pattern Interrupt" scene. Example: Instead of "dentist smiling", describe "Close up macro shot of a decayed tooth cracking, then reversing to white". It must be visceral.
+      3. **Ad Copy**: Address the pain point in the first sentence. Use the USP as the solution mechanism.
+      4. **Audience**: Dig deeper than broad interests. Find intersection interests.
       
-      CRITICAL:
-      - Ensure the output language matches the input language: "${language}".
-
       OUTPUT REQUIREMENTS:
       Return ONLY valid JSON matching the schema.
       `,
       config: {
         responseMimeType: "application/json",
         responseSchema: marketingPlanSchema,
-        temperature: 0.85 
+        temperature: 0.9 // Higher temperature for more creative/less robotic answers
       }
     });
 
