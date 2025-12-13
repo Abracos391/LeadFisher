@@ -33,12 +33,12 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
 const App: React.FC = () => {
   const [segment, setSegment] = useState('');
   const [language, setLanguage] = useState('Português');
-  const [region, setRegion] = useState(''); // Default empty as per feedback
-  const [radius, setRadius] = useState('Nacional (País Inteiro)');
+  const [region, setRegion] = useState(''); 
+  const [radius, setRadius] = useState('Cidade (Local)');
   
   // New Strategic Fields
   const [platform, setPlatform] = useState('Meta Ads (Facebook/Instagram)');
-  const [budget, setBudget] = useState('Baixo (< R$ 1.000)');
+  const [budget, setBudget] = useState('Micro-Teste (R$ 6 - R$ 20/dia)');
   const [objective, setObjective] = useState('Captura de Leads (Cadastro)');
 
   // API Key Management
@@ -79,7 +79,8 @@ const App: React.FC = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const coords = `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
-          setRegion(`GPS: ${coords}`);
+          // We set it as a string, but the user can overwrite it
+          setRegion(`Minha Localização GPS (${coords})`);
         },
         () => {
           alert("Não foi possível obter sua localização. Verifique as permissões do navegador.");
@@ -100,7 +101,7 @@ const App: React.FC = () => {
       return;
     }
     if (!region.trim()) {
-      alert("Por favor, preencha a localização ou use o botão de GPS.");
+      alert("Por favor, digite a cidade ou região alvo.");
       return;
     }
 
@@ -153,6 +154,7 @@ const App: React.FC = () => {
   };
 
   const handleExport = () => {
+    // Calls the browser's print function which allows "Save as PDF"
     window.print();
   };
 
@@ -160,6 +162,9 @@ const App: React.FC = () => {
     const url = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&q=${encodeURIComponent(query)}&sort_data[direction]=desc&sort_data[mode]=relevancy_monthly_grouped&media_type=all`;
     window.open(url, '_blank');
   };
+
+  // Common option style to fix visibility issues
+  const optionStyle = "bg-slate-900 text-slate-50";
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-50 selection:bg-emerald-500/30 font-sans relative print:bg-white print:text-black">
@@ -291,68 +296,69 @@ const App: React.FC = () => {
                     <select 
                       value={platform}
                       onChange={(e) => setPlatform(e.target.value)}
-                      className="w-full bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+                      className="w-full bg-slate-900 text-white text-sm focus:outline-none cursor-pointer border-none"
                     >
-                      <option value="Meta Ads (Facebook/Instagram)">Meta Ads (Face/Insta)</option>
-                      <option value="TikTok Ads">TikTok Ads</option>
-                      <option value="Kwai Business">Kwai Business</option>
-                      <option value="YouTube Ads">YouTube Ads</option>
-                      <option value="LinkedIn Ads">LinkedIn Ads</option>
+                      <option className={optionStyle} value="Meta Ads (Facebook/Instagram)">Meta Ads (Face/Insta)</option>
+                      <option className={optionStyle} value="TikTok Ads">TikTok Ads</option>
+                      <option className={optionStyle} value="Kwai Business">Kwai Business</option>
+                      <option className={optionStyle} value="YouTube Ads">YouTube Ads</option>
+                      <option className={optionStyle} value="LinkedIn Ads">LinkedIn Ads</option>
                     </select>
                  </div>
 
-                 {/* Budget */}
+                 {/* Budget - UPDATED WITH MICRO-BUDGETS */}
                  <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50">
                     <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1 block flex items-center gap-1">
-                      <IconMoney className="w-3 h-3" /> Orçamento Mensal
+                      <IconMoney className="w-3 h-3" /> Orçamento
                     </label>
                     <select 
                       value={budget}
                       onChange={(e) => setBudget(e.target.value)}
-                      className="w-full bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+                      className="w-full bg-slate-900 text-white text-sm focus:outline-none cursor-pointer border-none"
                     >
-                      <option value="Baixo (< R$ 1.000)">Baixo (&lt; R$ 1.000)</option>
-                      <option value="Médio (R$ 1.000 - R$ 5.000)">Médio (R$ 1k - 5k)</option>
-                      <option value="Alto (> R$ 5.000)">Alto (&gt; R$ 5.000)</option>
+                      <option className={optionStyle} value="Micro-Teste (R$ 6 - R$ 20/dia)">Micro-Teste (R$ 6 - R$ 20/dia)</option>
+                      <option className={optionStyle} value="Pequeno (R$ 600 - R$ 1.500/mês)">Pequeno (R$ 600 - R$ 1.500/mês)</option>
+                      <option className={optionStyle} value="Médio (R$ 2.000 - R$ 5.000/mês)">Médio (R$ 2.000 - R$ 5.000/mês)</option>
+                      <option className={optionStyle} value="Alto (> R$ 5.000/mês)">Alto (&gt; R$ 5.000/mês)</option>
                     </select>
                  </div>
 
-                 {/* Location */}
+                 {/* Location - UPDATED UX */}
                  <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50 flex flex-col justify-center">
-                    <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1 block">Localização</label>
-                    <div className="flex items-center">
-                      <input 
-                        type="text"
-                        value={region}
-                        onChange={(e) => setRegion(e.target.value)}
-                        placeholder="Ex: São Paulo, Brasil"
-                        className="w-full bg-transparent text-white text-sm focus:outline-none placeholder-slate-600"
-                      />
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">Cidade / Região Alvo</label>
                       <button 
                         type="button" 
                         onClick={handleGeolocation}
-                        title="Usar GPS"
-                        className="text-slate-400 hover:text-emerald-400 transition-colors"
+                        className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                        title="Usar minha localização atual como alvo"
                       >
-                        📍
+                        📍 Usar GPS Atual
                       </button>
                     </div>
+                    <input 
+                      type="text"
+                      value={region}
+                      onChange={(e) => setRegion(e.target.value)}
+                      placeholder="Digite a cidade... (Ex: Belo Horizonte, MG)"
+                      className="w-full bg-transparent text-white text-sm focus:outline-none placeholder-slate-600 border-b border-transparent focus:border-emerald-500 transition-colors pb-1"
+                    />
                  </div>
 
                  {/* Objective */}
                  <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50">
                     <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1 block flex items-center gap-1">
-                      <IconTarget className="w-3 h-3" /> Objetivo
+                      <IconTarget className="w-3 h-3" /> Objetivo Principal
                     </label>
                     <select 
                       value={objective}
                       onChange={(e) => setObjective(e.target.value)}
-                      className="w-full bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+                      className="w-full bg-slate-900 text-white text-sm focus:outline-none cursor-pointer border-none"
                     >
-                      <option value="Captura de Leads (Cadastro)">Captura de Leads</option>
-                      <option value="Vendas Diretas (E-commerce)">Vendas Diretas</option>
-                      <option value="Mensagens (WhatsApp/Direct)">Mensagens (WhatsApp)</option>
-                      <option value="Reconhecimento de Marca">Branding</option>
+                      <option className={optionStyle} value="Captura de Leads (Cadastro)">Captura de Leads</option>
+                      <option className={optionStyle} value="Vendas Diretas (E-commerce)">Vendas Diretas</option>
+                      <option className={optionStyle} value="Mensagens (WhatsApp/Direct)">Mensagens (WhatsApp)</option>
+                      <option className={optionStyle} value="Reconhecimento de Marca">Branding / Alcance</option>
                     </select>
                  </div>
               </div>
@@ -384,19 +390,19 @@ const App: React.FC = () => {
                     onChange={(e) => setLanguage(e.target.value)}
                     className="bg-transparent text-slate-500 text-xs hover:text-white cursor-pointer focus:outline-none"
                  >
-                    <option value="Português">🇧🇷 Português</option>
-                    <option value="English">🇺🇸 English</option>
-                    <option value="Español">🇪🇸 Español</option>
+                    <option className={optionStyle} value="Português">🇧🇷 Português</option>
+                    <option className={optionStyle} value="English">🇺🇸 English</option>
+                    <option className={optionStyle} value="Español">🇪🇸 Español</option>
                  </select>
                  <select 
                     value={radius}
                     onChange={(e) => setRadius(e.target.value)}
                     className="bg-transparent text-slate-500 text-xs hover:text-white cursor-pointer focus:outline-none"
                  >
-                    <option value="Nacional">🌐 Nacional</option>
-                    <option value="Estadual">🗺️ Estadual</option>
-                    <option value="Cidade">🏙️ Cidade</option>
-                    <option value="Bairro (5km)">🏘️ Bairro (5km)</option>
+                    <option className={optionStyle} value="Cidade (Local)">🏙️ Apenas a Cidade</option>
+                    <option className={optionStyle} value="Bairro (5km)">🏘️ Raio de 5km (Bairro)</option>
+                    <option className={optionStyle} value="Estadual">🗺️ Todo o Estado</option>
+                    <option className={optionStyle} value="Nacional">🌐 Nacional (País)</option>
                  </select>
               </div>
 
@@ -437,28 +443,31 @@ const App: React.FC = () => {
                 <h2 className="text-3xl font-bold text-white">Estratégia: <span className="text-emerald-400">{plan.segment}</span></h2>
                 <div className="flex gap-2 mt-2 flex-wrap">
                    <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700 flex items-center gap-1"><IconPlatform className="w-3 h-3"/> {platform}</span>
-                   <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{region}</span>
+                   <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{region} ({radius})</span>
                    <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">{objective}</span>
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleExport} className="text-sm text-slate-300 hover:text-white px-4 py-2 border border-slate-700 rounded hover:bg-slate-800 transition-colors flex items-center gap-2">
-                   <IconExport className="w-4 h-4" /> Salvar PDF
+                <button 
+                  onClick={handleExport} 
+                  className="text-sm bg-slate-700 text-white hover:bg-slate-600 px-4 py-2 rounded shadow transition-colors flex items-center gap-2 font-medium border border-slate-600"
+                >
+                   <IconExport className="w-4 h-4" /> Imprimir / Salvar PDF
                 </button>
-                <button onClick={handleReset} className="text-sm bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600 transition-colors font-bold">
+                <button onClick={handleReset} className="text-sm bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600 transition-colors font-bold shadow-lg">
                   Nova Pesquisa
                 </button>
               </div>
             </div>
 
             {/* Platform Advice Alert */}
-            <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg mb-8 flex gap-3 items-start">
-               <div className="p-1 bg-blue-500/20 rounded mt-0.5">
-                 <IconPlatform className="w-5 h-5 text-blue-400" />
+            <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg mb-8 flex gap-3 items-start print:border-gray-300 print:bg-white print:text-black">
+               <div className="p-1 bg-blue-500/20 rounded mt-0.5 print:bg-gray-100 print:border print:border-gray-200">
+                 <IconPlatform className="w-5 h-5 text-blue-400 print:text-black" />
                </div>
                <div>
-                 <h4 className="text-blue-400 font-bold text-sm mb-1">Estratégia Adaptada para {platform}</h4>
-                 <p className="text-slate-300 text-sm">{plan.platformStrategy}</p>
+                 <h4 className="text-blue-400 font-bold text-sm mb-1 print:text-black">Estratégia Adaptada para {platform}</h4>
+                 <p className="text-slate-300 text-sm print:text-gray-800">{plan.platformStrategy}</p>
                </div>
             </div>
 
