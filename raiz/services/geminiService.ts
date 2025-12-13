@@ -113,11 +113,15 @@ export const generateMarketingPlan = async (
       - Location: "${region}" (${radius})
       - Budget: "${budget}"
       - Objective: "${objective}"
+      - Language: "${language}"
 
       CRITICAL INSTRUCTION FOR "IMPLEMENTATION GUIDE":
       - The user is a LAYPERSON. Do not just say "Target audience". Say "Go to Audience section, select Location, type [Interest]".
       - Explain exactly how to configure the budget based on the input "${budget}".
       - Recommend specific TOOLS to create the Lead Magnet (e.g. Canva for PDFs, Loom for video).
+      
+      CRITICAL:
+      - Ensure the output language matches the input language: "${language}".
 
       OUTPUT REQUIREMENTS:
       Return ONLY valid JSON matching the schema.
