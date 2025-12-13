@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateMarketingPlan } from './services/geminiService';
 import { MarketingPlan, AppState } from './types';
-import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage, IconZap, IconCreditCard, IconLock, IconStar, IconPlatform, IconMoney, IconExport, IconAlert } from './components/Icons';
+import { IconSearch, IconTarget, IconMessage, IconBot, IconArrowRight, IconCopy, IconCheck, IconMagnet, IconVideo, IconImage, IconZap, IconCreditCard, IconLock, IconStar, IconPlatform, IconMoney, IconExport, IconAlert, IconTools, IconList } from './components/Icons';
 import StepCard from './components/StepCard';
 
 // --------------------------------------------------------
@@ -492,6 +492,19 @@ const App: React.FC = () => {
                       <p className="text-xs text-slate-400 print:text-gray-600">{plan.leadMagnet.whyItWorks}</p>
                    </div>
                 </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-700/50 print:border-gray-300">
+                   <h4 className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-1 uppercase tracking-wide print:text-black">
+                     <IconTools className="w-3 h-3" /> Ferramentas para Criar:
+                   </h4>
+                   <div className="flex flex-wrap gap-2">
+                     {plan.leadMagnet.creationTools.map((tool, idx) => (
+                       <span key={idx} className="text-xs px-2 py-1 bg-slate-900 border border-slate-700 rounded text-slate-300 print:bg-gray-100 print:text-black print:border-gray-300">
+                         {tool}
+                       </span>
+                     ))}
+                   </div>
+                </div>
               </StepCard>
 
               {/* Step 2: Creative Prompts */}
@@ -682,6 +695,53 @@ const App: React.FC = () => {
                        <span className="text-xs text-emerald-400 font-bold block mb-1 print:text-black">Entrega da Isca (Sucesso)</span>
                        <p className="text-xs text-slate-400 leading-tight print:text-gray-700">"{plan.agentFlow.successMessage}"</p>
                    </div>
+                </div>
+              </StepCard>
+
+              {/* Step 7: Implementation Guide (NEW) */}
+              <StepCard 
+                stepNumber={7} 
+                title="Guia de Implementação (Passo a Passo)" 
+                icon={<IconList className="w-5 h-5 text-teal-400" />}
+                colorClass="text-teal-400"
+              >
+                <div className="space-y-6">
+                   
+                   {/* Budget Instructions */}
+                   <div className="bg-slate-900 p-4 rounded-lg border border-slate-700 print:bg-white print:border-slate-300">
+                     <h4 className="flex items-center gap-2 font-bold text-teal-400 mb-2 print:text-black">
+                       <IconMoney className="w-4 h-4" /> Configuração de Orçamento
+                     </h4>
+                     <p className="text-slate-300 text-sm leading-relaxed print:text-gray-800">
+                       {plan.implementationGuide.budgetSetup}
+                     </p>
+                   </div>
+
+                   {/* Platform Walkthrough */}
+                   <div className="space-y-3">
+                      <h4 className="font-bold text-white text-sm uppercase tracking-wide print:text-black">Como Criar a Campanha ({platform}):</h4>
+                      {plan.implementationGuide.platformWalkthrough.map((step, idx) => (
+                        <div key={idx} className="flex gap-3 items-start">
+                           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-teal-900/50 border border-teal-500/30 text-teal-400 flex items-center justify-center text-xs font-bold print:bg-gray-100 print:text-black print:border-gray-400">
+                             {idx + 1}
+                           </span>
+                           <p className="text-slate-300 text-sm pt-0.5 print:text-gray-800">{step}</p>
+                        </div>
+                      ))}
+                   </div>
+
+                   {/* Best Practices */}
+                   <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg print:bg-gray-50 print:border-gray-300">
+                      <h4 className="text-red-400 font-bold text-sm mb-2 flex items-center gap-2 print:text-red-700">
+                        ⚠️ Evite estes erros:
+                      </h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {plan.implementationGuide.bestPractices.map((tip, idx) => (
+                          <li key={idx} className="text-slate-300 text-xs print:text-gray-800">{tip}</li>
+                        ))}
+                      </ul>
+                   </div>
+
                 </div>
               </StepCard>
 
