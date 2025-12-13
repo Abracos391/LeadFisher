@@ -5,12 +5,12 @@ const marketingPlanSchema: Schema = {
   type: Type.OBJECT,
   properties: {
     segment: { type: Type.STRING, description: "The user provided segment name" },
-    platformStrategy: { type: Type.STRING, description: "Specific advice on how to succeed on the chosen platform (e.g. TikTok vs LinkedIn)" },
+    platformStrategy: { type: Type.STRING, description: "Specific advice on how to succeed on the chosen platform" },
     competitorAnalysis: {
       type: Type.OBJECT,
       properties: {
         searchKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5 keywords to search in Meta Ads Library" },
-        bigCompetitors: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Names of 3-5 potential big competitors (generic descriptions if specific brands are risky)" },
+        bigCompetitors: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Names of 3-5 potential big competitors" },
         visualStyle: { type: Type.STRING, description: "Description of common visual patterns" },
         commentTriggers: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Phrases in comments indicating intent" }
       },
@@ -19,7 +19,7 @@ const marketingPlanSchema: Schema = {
     audienceStrategy: {
       type: Type.OBJECT,
       properties: {
-        interests: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Targeting interests (Broad/Contextual)" },
+        interests: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Targeting interests" },
         behaviors: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Targeting behaviors" },
         lookalikeSource: { type: Type.STRING, description: "Source for Lookalike audience" },
         excludedKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Keywords to exclude" }
@@ -29,19 +29,20 @@ const marketingPlanSchema: Schema = {
     leadMagnet: {
       type: Type.OBJECT,
       properties: {
-        title: { type: Type.STRING, description: "Name of the free resource/bait. Must be IRRESISTIBLE." },
-        format: { type: Type.STRING, description: "Format (e.g., PDF, Video Class, Template, Coupon)" },
-        description: { type: Type.STRING, description: "What is inside the magnet" },
-        whyItWorks: { type: Type.STRING, description: "Psychological reason why the user will give their contact info for this" }
+        title: { type: Type.STRING, description: "Name of the free resource" },
+        format: { type: Type.STRING, description: "Format (e.g., PDF, Video Class)" },
+        description: { type: Type.STRING, description: "Content description" },
+        whyItWorks: { type: Type.STRING, description: "Psychological reason" },
+        creationTools: { type: Type.ARRAY, items: { type: Type.STRING }, description: "3 specific free/cheap tools to CREATE this magnet (e.g. Canva, CapCut, Google Docs)" }
       },
-      required: ["title", "format", "description", "whyItWorks"]
+      required: ["title", "format", "description", "whyItWorks", "creationTools"]
     },
     creativePrompts: {
       type: Type.OBJECT,
       properties: {
-        videoPrompt: { type: Type.STRING, description: "SCROLL-STOPPING AI Video prompt optimized for the chosen platform format (e.g. vertical for TikTok). Use Pattern Interrupts." },
-        imagePrompt: { type: Type.STRING, description: "High-contrast, odd, or hyper-aesthetic AI Image prompt that acts as a click-magnet." },
-        thumbnailText: { type: Type.STRING, description: "Short, punchy text overlay." }
+        videoPrompt: { type: Type.STRING, description: "AI Video prompt" },
+        imagePrompt: { type: Type.STRING, description: "AI Image prompt" },
+        thumbnailText: { type: Type.STRING, description: "Overlay text" }
       },
       required: ["videoPrompt", "imagePrompt", "thumbnailText"]
     },
@@ -53,12 +54,11 @@ const marketingPlanSchema: Schema = {
           items: {
             type: Type.OBJECT,
             properties: {
-              headline: { type: Type.STRING, description: "Hook headline" },
-              body: { type: Type.STRING, description: "Ad body text" }
+              headline: { type: Type.STRING, description: "Headline" },
+              body: { type: Type.STRING, description: "Body text" }
             },
             required: ["headline", "body"]
           },
-          description: "3 distinct variations for A/B testing"
         },
         cta: { type: Type.STRING, description: "Call to Action" }
       },
@@ -74,9 +74,18 @@ const marketingPlanSchema: Schema = {
         successMessage: { type: Type.STRING, description: "Success message" }
       },
       required: ["platform", "trigger", "qualificationQuestions", "rejectionMessage", "successMessage"]
+    },
+    implementationGuide: {
+      type: Type.OBJECT,
+      properties: {
+        platformWalkthrough: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5-7 very specific steps to set up the campaign on the chosen platform (e.g., 'Click Create', 'Select Sales Objective')." },
+        budgetSetup: { type: Type.STRING, description: "Specific instruction on how to set the budget (e.g., 'Set CBO off, use Daily Budget at Ad Set level')." },
+        bestPractices: { type: Type.ARRAY, items: { type: Type.STRING }, description: "3 tips to avoid losing money (e.g., 'Turn off Audience Network')." }
+      },
+      required: ["platformWalkthrough", "budgetSetup", "bestPractices"]
     }
   },
-  required: ["segment", "platformStrategy", "competitorAnalysis", "audienceStrategy", "leadMagnet", "creativePrompts", "adCopy", "agentFlow"]
+  required: ["segment", "platformStrategy", "competitorAnalysis", "audienceStrategy", "leadMagnet", "creativePrompts", "adCopy", "agentFlow", "implementationGuide"]
 };
 
 export const generateMarketingPlan = async (
@@ -94,34 +103,21 @@ export const generateMarketingPlan = async (
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `
-      ROLE: World-Class Direct Response Copywriter & Viral Content Strategist.
+      ROLE: Expert Digital Marketing Implementation Coach.
       
-      TASK: Create a HIGH-CONVERSION "Lead Fisher" strategy.
+      TASK: Create a marketing strategy AND a step-by-step technical execution guide for a BEGINNER.
       
       INPUTS:
-      - Niche/Segment: "${segment}"
-      - Target Platform: "${platform}" (CRITICAL: Adapt tone/format for this)
+      - Niche: "${segment}"
+      - Platform: "${platform}"
       - Location: "${region}" (${radius})
-      - Language: "${language}"
-      - Budget Level: "${budget}"
-      - Main Objective: "${objective}"
+      - Budget: "${budget}"
+      - Objective: "${objective}"
 
-      GUIDELINES FOR PLATFORM ADAPTATION:
-      - If TikTok/Kwai/Reels: Content must be fast, raw, UGC-style, entertainment-first. Text should be short caption style.
-      - If LinkedIn: Professional, value-driven, longer form.
-      - If Facebook/Instagram Feed: Visual hook + Storytelling copy (PAS framework).
-      - If YouTube: Story-based, education-focused.
-
-      GUIDELINES FOR "CREATIVE PROMPTS":
-      - **NO GENERIC LIFESTYLE SCENES**: Do NOT describe "happy families on the couch".
-      - **USE "PATTERN INTERRUPTS"**: The video prompt must describe a scene that breaks the user's scroll pattern.
-      - **VISUAL HOOK**: The first 3 seconds must visually represent the PAIN or the SHOCKing result.
-
-      GUIDELINES FOR "AD COPY":
-      - Generate **3 DISTINCT VARIATIONS** of Headline and Body for A/B testing.
-      - Variation 1: Direct/Benefit focused.
-      - Variation 2: Story/Emotional focused.
-      - Variation 3: Controversial/Curiosity focused.
+      CRITICAL INSTRUCTION FOR "IMPLEMENTATION GUIDE":
+      - The user is a LAYPERSON. Do not just say "Target audience". Say "Go to Audience section, select Location, type [Interest]".
+      - Explain exactly how to configure the budget based on the input "${budget}".
+      - Recommend specific TOOLS to create the Lead Magnet (e.g. Canva for PDFs, Loom for video).
 
       OUTPUT REQUIREMENTS:
       Return ONLY valid JSON matching the schema.
