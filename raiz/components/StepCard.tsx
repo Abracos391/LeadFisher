@@ -10,19 +10,19 @@ interface StepCardProps {
 
 const StepCard: React.FC<StepCardProps> = ({ title, icon, stepNumber, children, colorClass = "text-emerald-400" }) => {
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg mb-6 relative overflow-hidden group hover:border-slate-600 transition-all duration-300">
-      <div className="absolute -right-4 -top-4 text-9xl font-bold text-slate-700/10 pointer-events-none select-none">
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg mb-6 relative overflow-hidden group hover:border-slate-600 transition-all duration-300 print:bg-white print:border-gray-300 print:shadow-none print:break-inside-avoid print:mb-4">
+      <div className="absolute -right-4 -top-4 text-9xl font-bold text-slate-700/10 pointer-events-none select-none print:opacity-5 print:text-gray-300">
         {stepNumber}
       </div>
       
-      <div className="flex items-center gap-3 mb-4 relative z-10">
-        <div className={`p-2 rounded-lg bg-slate-900 ${colorClass}`}>
+      <div className="flex items-center gap-3 mb-4 relative z-10 print:mb-2">
+        <div className={`p-2 rounded-lg bg-slate-900 ${colorClass} print:bg-gray-100 print:border print:border-gray-200`}>
           {icon}
         </div>
-        <h3 className="text-xl font-bold text-white tracking-wide">{title}</h3>
+        <h3 className="text-xl font-bold text-white tracking-wide print:text-black">{title}</h3>
       </div>
       
-      <div className="relative z-10 text-slate-300">
+      <div className="relative z-10 text-slate-300 print:text-gray-800">
         {children}
       </div>
     </div>
