@@ -25,9 +25,13 @@ export interface CreativePrompts {
   thumbnailText: string;
 }
 
-export interface AdCopy {
+export interface AdCopyVariation {
   headline: string;
   body: string;
+}
+
+export interface AdCopy {
+  variations: AdCopyVariation[]; // Now supports A/B testing
   cta: string;
 }
 
@@ -41,6 +45,7 @@ export interface AgentFlow {
 
 export interface MarketingPlan {
   segment: string;
+  platformStrategy: string; // Specific advice for the chosen platform
   competitorAnalysis: CompetitorAnalysis;
   audienceStrategy: AudienceStrategy;
   leadMagnet: LeadMagnet;
