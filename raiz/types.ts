@@ -17,6 +17,7 @@ export interface LeadMagnet {
   format: string;
   description: string;
   whyItWorks: string;
+  creationTools: string[]; // New: Tools to make it (e.g. Canva)
 }
 
 export interface CreativePrompts {
@@ -31,7 +32,7 @@ export interface AdCopyVariation {
 }
 
 export interface AdCopy {
-  variations: AdCopyVariation[]; // Now supports A/B testing
+  variations: AdCopyVariation[];
   cta: string;
 }
 
@@ -43,15 +44,22 @@ export interface AgentFlow {
   successMessage: string;
 }
 
+export interface ImplementationGuide {
+  platformWalkthrough: string[]; // Step-by-step generic clicks
+  budgetSetup: string; // How to configure the budget specifically
+  bestPractices: string[]; // Rookie mistakes to avoid
+}
+
 export interface MarketingPlan {
   segment: string;
-  platformStrategy: string; // Specific advice for the chosen platform
+  platformStrategy: string;
   competitorAnalysis: CompetitorAnalysis;
   audienceStrategy: AudienceStrategy;
   leadMagnet: LeadMagnet;
   creativePrompts: CreativePrompts;
   adCopy: AdCopy;
   agentFlow: AgentFlow;
+  implementationGuide: ImplementationGuide; // New section
 }
 
 export enum AppState {
