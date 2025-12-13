@@ -36,7 +36,10 @@ const App: React.FC = () => {
   const [region, setRegion] = useState(''); 
   const [radius, setRadius] = useState('Cidade (Local)');
   
-  // New Strategic Fields
+  // New Strategic Fields (Deep Diagnosis)
+  const [usp, setUsp] = useState(''); // Unique Selling Proposition
+  const [painPoints, setPainPoints] = useState(''); // Customer Pain
+  
   const [platform, setPlatform] = useState('Meta Ads (Facebook/Instagram)');
   const [budget, setBudget] = useState('Micro-Teste (R$ 6 - R$ 20/dia)');
   const [objective, setObjective] = useState('Captura de Leads (Cadastro)');
@@ -104,6 +107,11 @@ const App: React.FC = () => {
       alert("Por favor, digite a cidade ou região alvo.");
       return;
     }
+    // New validation for deep diagnosis
+    if (!usp.trim() || !painPoints.trim()) {
+       alert("O Diagnóstico Profundo é obrigatório. Preencha o Diferencial e as Dores do Cliente para evitar resultados genéricos.");
+       return;
+    }
 
     // Credit Check
     if (credits <= 0) {
@@ -121,7 +129,8 @@ const App: React.FC = () => {
     setError(null);
     
     try {
-      const result = await generateMarketingPlan(segment, language, region, radius, platform, budget, objective);
+      // Pass the new deep diagnosis fields
+      const result = await generateMarketingPlan(segment, language, region, radius, platform, budget, objective, usp, painPoints);
       setPlan(result);
       setAppState(AppState.SUCCESS);
       
@@ -150,6 +159,8 @@ const App: React.FC = () => {
     setAppState(AppState.IDLE);
     setPlan(null);
     setSegment('');
+    setUsp('');
+    setPainPoints('');
     // Keep user preferences (region, platform, etc)
   };
 
@@ -276,17 +287,17 @@ const App: React.FC = () => {
             <div className="text-center mb-10">
               <h1 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
                 Gere Estratégias de Marketing <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Para Captar Leads Reais</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Sob Medida (Sem Lero-Lero)</span>
               </h1>
               <p className="text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
-                Crie um plano completo (Copy, Criativos, Público e Isca) adaptado para sua plataforma preferida.
+                Esqueça o genérico. Insira seus diferenciais reais e receba um plano de batalha (Copy, Vídeos, Isca) pronto para executar.
               </p>
             </div>
 
             <form onSubmit={handleValidation} className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm">
               
               {/* Configuration Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                  
                  {/* Platform */}
                  <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50">
@@ -306,7 +317,7 @@ const App: React.FC = () => {
                     </select>
                  </div>
 
-                 {/* Budget - UPDATED WITH MICRO-BUDGETS */}
+                 {/* Budget */}
                  <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50">
                     <label className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1 block flex items-center gap-1">
                       <IconMoney className="w-3 h-3" /> Orçamento
@@ -323,7 +334,7 @@ const App: React.FC = () => {
                     </select>
                  </div>
 
-                 {/* Location - UPDATED UX */}
+                 {/* Location */}
                  <div className="bg-slate-900 p-3 rounded-lg border border-slate-700/50 flex flex-col justify-center">
                     <div className="flex justify-between items-center mb-1">
                       <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">Cidade / Região Alvo</label>
@@ -363,26 +374,57 @@ const App: React.FC = () => {
                  </div>
               </div>
 
-              {/* Main Search Input */}
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                <div className="relative flex items-center bg-slate-800 rounded-lg p-2 border border-slate-700">
-                  <IconSearch className="w-6 h-6 text-slate-400 ml-3" />
-                  <input
-                    type="text"
-                    placeholder="Qual seu nicho? (Ex: Energia Solar, Estética, Pizzaria)"
-                    className="w-full bg-transparent border-none text-white px-4 py-3 focus:outline-none text-lg placeholder-slate-500"
-                    value={segment}
-                    onChange={(e) => setSegment(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-md font-semibold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap"
-                  >
-                    Gerar <IconArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+              {/* DEEP DIAGNOSIS SECTION (NEW) */}
+              <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 mb-6">
+                 <h3 className="text-emerald-400 font-bold text-sm mb-4 uppercase tracking-wider flex items-center gap-2">
+                    <IconSearch className="w-4 h-4" /> Diagnóstico Profundo (Obrigatório)
+                 </h3>
+                 
+                 <div className="space-y-4">
+                    {/* Nicho */}
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Qual seu Nicho exato? (Ex: Dentista especializado em Lentes de Resina)</label>
+                      <input
+                        type="text"
+                        placeholder="Seja específico. Não coloque apenas 'Dentista'."
+                        className="w-full bg-slate-800 border border-slate-700 text-white px-3 py-2 rounded focus:outline-none focus:border-emerald-500 transition-colors text-sm"
+                        value={segment}
+                        onChange={(e) => setSegment(e.target.value)}
+                      />
+                    </div>
+
+                    {/* USP */}
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Qual seu Diferencial Único? (O que você tem que o concorrente não tem?)</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Ex: Atendimento 24h, Método sem dor, Garantia de 10 anos, Frete grátis..."
+                        className="w-full bg-slate-800 border border-slate-700 text-white px-3 py-2 rounded focus:outline-none focus:border-emerald-500 transition-colors text-sm resize-none"
+                        value={usp}
+                        onChange={(e) => setUsp(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Pain Points */}
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Qual a Maior Dor/Medo do seu cliente hoje?</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Ex: Medo de ficar artificial, medo de sentir dor, urgência em resolver..."
+                        className="w-full bg-slate-800 border border-slate-700 text-white px-3 py-2 rounded focus:outline-none focus:border-emerald-500 transition-colors text-sm resize-none"
+                        value={painPoints}
+                        onChange={(e) => setPainPoints(e.target.value)}
+                      />
+                    </div>
+                 </div>
               </div>
+              
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white p-4 rounded-lg font-bold text-lg transition-all shadow-lg hover:shadow-emerald-500/20 flex items-center justify-center gap-2 transform hover:scale-[1.01]"
+              >
+                Gerar Estratégia Sob Medida <IconArrowRight className="w-5 h-5" />
+              </button>
               
               <div className="flex justify-center mt-4 gap-4">
                  <select 
@@ -413,10 +455,12 @@ const App: React.FC = () => {
         {appState === AppState.LOADING && (
           <div className="max-w-2xl mx-auto text-center mt-24">
             <div className="w-16 h-16 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin mx-auto mb-6"></div>
-            <h2 className="text-2xl font-bold text-white mb-2">Preparando a Isca...</h2>
-            <p className="text-slate-400 animate-pulse">
-              Adaptando estratégia para <strong>{platform}</strong>...
-            </p>
+            <h2 className="text-2xl font-bold text-white mb-2">Analisando Diferenciais...</h2>
+            <div className="space-y-2 mt-4">
+               <p className="text-slate-400 text-sm animate-pulse">Diagnosticiando Dores: <strong>{painPoints.substring(0, 30)}...</strong></p>
+               <p className="text-slate-500 text-xs">Cruzando dados com concorrentes em {region}...</p>
+               <p className="text-slate-500 text-xs">Desenhando ganchos visuais para {platform}...</p>
+            </div>
           </div>
         )}
 
@@ -426,7 +470,7 @@ const App: React.FC = () => {
               <div className="flex justify-center mb-4">
                  <span className="text-3xl">⚠️</span>
               </div>
-              <p className="text-red-400 font-bold mb-2">Atenção</p>
+              <p className="text-red-400 font-bold mb-2">Erro na Análise</p>
               <p className="text-slate-300 text-sm mb-4">{error}</p>
             </div>
             <br />
